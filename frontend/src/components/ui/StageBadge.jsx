@@ -25,6 +25,10 @@ const stageConfig = {
     label: "Contratado",
     className: "bg-teal-dark text-white border-transparent",
   },
+  Rechazado: {
+    label: "Rechazado",
+    className: "bg-red-500 text-white border-transparent",
+  },
 }
 
 export function StageBadge({ stage, className }) {
@@ -45,5 +49,13 @@ export function StageBadge({ stage, className }) {
   )
 }
 
-// Exportamos el config por si otra parte del app necesita la lista de etapas
-export const STAGES = Object.keys(stageConfig)
+// Etapas del pipeline lineal (selector de etapa, timeline de proceso).
+// "Rechazado" es un estado terminal fuera del flujo, por eso no va acá.
+export const STAGES = [
+  "Recibido",
+  "Analizado",
+  "Seleccionado",
+  "Bajo Entrevista",
+  "Oferta Enviada",
+  "Contratado",
+]
