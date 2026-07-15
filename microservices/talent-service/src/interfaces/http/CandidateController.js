@@ -83,6 +83,13 @@ class CandidateController {
             application.status = newStatus;
             await application.save();
 
+            // Registrar el cambio de etapa en el historial
+            await ApplicationStageHistory.create({
+                application_id: application.id,
+                stage: newStatus,
+                changed_at: new Date()
+            });
+
             return reply.code(200).send({
                 message: 'Estado del pipeline actualizado',
                 status: application.status

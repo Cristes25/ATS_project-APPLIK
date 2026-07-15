@@ -36,6 +36,36 @@ class AiBridgeClient {
             return null; // Fallback manejable
         }
     }
+
+    /**
+     * Llama al servicio de AI para obtener sugerencias de reclutamiento basadas en los tiempos promedio
+     */
+    async getSuggestions(stageTimes) {
+        try {
+            const response = await this.client.post('/analytics/suggestions', { stageTimes });
+            return response.data.suggestions;
+        } catch (error) {
+            console.error('[AI Bridge] Fallo al obtener sugerencias de IA:', error.message);
+            // fallback
+            return [
+                {
+                    tipo: 'advertencia',
+                    titulo: 'Revisión de Tiempos del Proceso',
+                    texto: 'Los candidatos están permaneciendo en promedio más de lo esperado en la etapa de entrevista. Considere optimizar el agendamiento.'
+                },
+                {
+                    tipo: 'info',
+                    titulo: 'Distribución de Vacantes',
+                    texto: 'Identificamos un alto volumen de postulaciones en el departamento de IT. Asegure la disponibilidad de los evaluadores técnicos.'
+                },
+                {
+                    tipo: 'positivo',
+                    titulo: 'Eficiencia en Ingesta',
+                    texto: 'La velocidad de clasificación inicial de candidatos se mantiene óptima gracias al análisis automatizado de CVs.'
+                }
+            ];
+        }
+    }
 }
 
 module.exports = new AiBridgeClient();

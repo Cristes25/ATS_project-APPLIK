@@ -8,6 +8,7 @@ const Application = require('./Application');
 const ApplicationStageHistory = require('./ApplicationStageHistory');
 const Job = require('./Job');
 const Candidate = require('./Candidate');
+const Department = require('./Department');
 
 // Define Relationships (1-N)
 CandidateProfile.hasMany(WorkExperience, { foreignKey: 'profile_id', as: 'work_experiences' });
@@ -32,6 +33,8 @@ ApplicationStageHistory.belongsTo(Application, { foreignKey: 'application_id' })
 // Cross-service read-only relations
 Application.belongsTo(Job, { foreignKey: 'job_id', as: 'job' });
 CandidateProfile.belongsTo(Candidate, { foreignKey: 'candidate_id', as: 'candidate' });
+Job.belongsTo(Department, { foreignKey: 'department_id', as: 'department' });
+Department.hasMany(Job, { foreignKey: 'department_id', as: 'jobs' });
 
 module.exports = {
     sequelize,
@@ -43,5 +46,6 @@ module.exports = {
     Application,
     ApplicationStageHistory,
     Job,
-    Candidate
+    Candidate,
+    Department
 };

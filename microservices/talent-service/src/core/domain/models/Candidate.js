@@ -10,6 +10,7 @@ const Candidate = sequelize.define('Candidate', {
     email: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true
     },
     first_name: {
         type: DataTypes.STRING,
@@ -18,6 +19,14 @@ const Candidate = sequelize.define('Candidate', {
     last_name: {
         type: DataTypes.STRING,
         allowNull: false,
+    },
+    password: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    law_787_accepted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     }
 }, {
     timestamps: true,

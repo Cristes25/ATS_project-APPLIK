@@ -1,5 +1,5 @@
 const aiClient = require('../../infrastructure/aiBridge/AiClient');
-const { CandidateProfile, WorkExperience, Education, Skill, CandidateSkill, Application } = require('../domain/models');
+const { CandidateProfile, WorkExperience, Education, Skill, CandidateSkill, Application, ApplicationStageHistory } = require('../domain/models');
 const sequelize = require('../../infrastructure/database/sequelize');
 const fs = require('fs');
 const path = require('path');
@@ -125,6 +125,13 @@ class IngestCandidateUseCase {
                     job_id: jobId,
                     status: 'postulado',
                     // match_score: null -> Se calculará asincronamente después
+                }, { transaction });
+
+                // Registrar el estado inicial en el historial
+                await ApplicationStageHistory.create({
+                    application_id: application.id,
+                    stage: 'postulado',
+                    changed_at: new Date()
                 }, { transaction });
             }
 
