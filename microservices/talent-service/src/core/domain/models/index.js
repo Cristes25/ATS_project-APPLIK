@@ -9,6 +9,8 @@ const ApplicationStageHistory = require('./ApplicationStageHistory');
 const Job = require('./Job');
 const Candidate = require('./Candidate');
 const Department = require('./Department');
+const Tenant = require('./Tenant');
+const Bookmark = require('./Bookmark');
 
 // Define Relationships (1-N)
 CandidateProfile.hasMany(WorkExperience, { foreignKey: 'profile_id', as: 'work_experiences' });
@@ -35,6 +37,10 @@ Application.belongsTo(Job, { foreignKey: 'job_id', as: 'job' });
 CandidateProfile.belongsTo(Candidate, { foreignKey: 'candidate_id', as: 'candidate' });
 Job.belongsTo(Department, { foreignKey: 'department_id', as: 'department' });
 Department.hasMany(Job, { foreignKey: 'department_id', as: 'jobs' });
+Job.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
+Tenant.hasMany(Job, { foreignKey: 'tenant_id', as: 'jobs' });
+Bookmark.belongsTo(Job, { foreignKey: 'job_id', as: 'job' });
+Job.hasMany(Bookmark, { foreignKey: 'job_id', as: 'bookmarks' });
 
 module.exports = {
     sequelize,
@@ -47,5 +53,7 @@ module.exports = {
     ApplicationStageHistory,
     Job,
     Candidate,
-    Department
+    Department,
+    Tenant,
+    Bookmark
 };

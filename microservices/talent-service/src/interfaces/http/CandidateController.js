@@ -18,13 +18,33 @@ class CandidateController {
 
             // Consultar Job-Service cruzado para resolver la metadata
             const jobData = await jobClient.getJobByToken(jobToken);
+
+            // Extraer candidateId si el aplicante está autenticado
+            let candidateId = null;
+            const authHeader = request.headers.authorization;
+            if (authHeader) {
+                try {
+                    const token = authHeader.replace('Bearer ', '');
+                    const jwt = require('jsonwebtoken');
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'applik_super_secret_jwt_key_2026');
+                    request.log.info({ authHeader, decoded }, 'DECODED CANDIDATE TOKEN:');
+                    if (decoded.role === 'aplicante' || decoded.role === 'candidate') {
+                        candidateId = decoded.user_id;
+                    }
+                } catch (e) {
+                    request.log.error(e, 'ERROR DECODING CANDIDATE TOKEN:');
+                }
+            } else {
+                request.log.info('NO AUTH HEADER PROVIDED IN PUBLIC APPLY');
+            }
+
             const result = await ingestCandidate.execute({
                 rawCvText,
                 s3Url,
                 law787Accepted,
                 tenantId: request.tenantId || jobData.tenant_id, // Si no está loggeado, toma el del job
                 jobId: jobData.id,
-                candidateId: request.user && request.user.role === 'candidate' ? request.user.user_id : null
+                candidateId: candidateId
             });
             return reply.code(201).send(result);
         } catch (error) {
