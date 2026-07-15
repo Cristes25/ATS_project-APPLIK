@@ -52,6 +52,7 @@ const buildServer = async () => {
 
     app.register(require('./interfaces/http/candidateRoutes'), { prefix: '/api/v1/talents' });
     app.register(require('./interfaces/http/analyticsRoutes'), { prefix: '/api/v1/analytics' });
+    app.register(require('./interfaces/http/candidateTrackingRoutes'), { prefix: '/api/v1/talents/me' });
 
     // Intentar Conexión de Base de Datos
     try {
