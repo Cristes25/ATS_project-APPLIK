@@ -73,6 +73,10 @@ const buildServer = async () => {
         app.log.error('No se pudo conectar a la base de datos');
     }
 
+    // Inicializar programador de Cron
+    const { initCronJobs } = require('./core/services/cronScheduler');
+    initCronJobs();
+
     return app;
 };
 

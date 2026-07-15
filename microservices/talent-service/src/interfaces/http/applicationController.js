@@ -14,6 +14,8 @@ const updateStage = async (request, reply) => {
             return reply.code(404).send({ error: 'Aplicación no encontrada.' });
         }
 
+        const oldStatus = application.status;
+
         // Registra el cambio en el historial
         const historyEntry = await ApplicationStageHistory.create({
             application_id: application.id,
@@ -23,6 +25,16 @@ const updateStage = async (request, reply) => {
 
         // Actualiza el status en la tabla principal también
         await application.update({ status: stage });
+
+        // Disparar notificaciones / emails automáticos basados en la matriz de transiciones
+        const notificationService = require('../../core/services/notificationService');
+        if (oldStatus === 'postulado' && stage === 'revisando') {
+            notificationService.triggerNotification(application.id, 'application_reviewed');
+        } else if (stage === 'rechazado') {
+            notificationService.triggerNotification(application.id, 'application_rejected');
+        } else if (['seleccionado', 'entrevista', 'oferta_enviada', 'contratado'].includes(stage)) {
+            notificationService.triggerNotification(application.id, 'stage_advanced', { newStage: stage });
+        }
 
         return reply.code(200).send({
             application_id: application.id,

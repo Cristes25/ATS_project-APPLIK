@@ -11,6 +11,8 @@ const Candidate = require('./Candidate');
 const Department = require('./Department');
 const Tenant = require('./Tenant');
 const Bookmark = require('./Bookmark');
+const Notification = require('./Notification');
+const EmailLog = require('./EmailLog');
 
 // Define Relationships (1-N)
 CandidateProfile.hasMany(WorkExperience, { foreignKey: 'profile_id', as: 'work_experiences' });
@@ -35,12 +37,17 @@ ApplicationStageHistory.belongsTo(Application, { foreignKey: 'application_id' })
 // Cross-service read-only relations
 Application.belongsTo(Job, { foreignKey: 'job_id', as: 'job' });
 CandidateProfile.belongsTo(Candidate, { foreignKey: 'candidate_id', as: 'candidate' });
+Candidate.hasOne(CandidateProfile, { foreignKey: 'candidate_id', as: 'profile' });
 Job.belongsTo(Department, { foreignKey: 'department_id', as: 'department' });
 Department.hasMany(Job, { foreignKey: 'department_id', as: 'jobs' });
 Job.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 Tenant.hasMany(Job, { foreignKey: 'tenant_id', as: 'jobs' });
 Bookmark.belongsTo(Job, { foreignKey: 'job_id', as: 'job' });
 Job.hasMany(Bookmark, { foreignKey: 'job_id', as: 'bookmarks' });
+Candidate.hasMany(Notification, { foreignKey: 'candidate_id', as: 'notifications' });
+Notification.belongsTo(Candidate, { foreignKey: 'candidate_id', as: 'candidate' });
+Candidate.hasMany(EmailLog, { foreignKey: 'candidate_id', as: 'email_logs' });
+EmailLog.belongsTo(Candidate, { foreignKey: 'candidate_id', as: 'candidate' });
 
 module.exports = {
     sequelize,
@@ -55,5 +62,7 @@ module.exports = {
     Candidate,
     Department,
     Tenant,
-    Bookmark
+    Bookmark,
+    Notification,
+    EmailLog
 };

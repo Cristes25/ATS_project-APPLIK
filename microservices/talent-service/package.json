@@ -18,6 +18,8 @@
     "fastify": "^5.8.4",
     "fastify-plugin": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^9.0.3",
     "pg": "^8.20.0",
     "pg-hstore": "^2.3.4",
     "pino": "^10.3.1",
