@@ -7,18 +7,13 @@ import { SearchInput } from "@/components/ui/Input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/Card"
 import { MatchScoreBar } from "@/components/ui/MatchScoreBar"
-import { updateApplicationStage } from "@/api/talent"
+import { updateApplicationStage, fetchApplications } from "@/api/talent"
+import { getTenantId } from "@/lib/token"
 import ActualizarEtapaModal from "./ActualizarEtapaModal"
 import DescartarModal from "./DescartarModal"
 import ProgramarEntrevistaModal from "./ProgramarEntrevistaModal"
 import EnviarCorreoModal from "./EnviarCorreoModal"
 import DetallesCandidatoPage from "./DetallesCandidatoPage"
-
-const filtrosOpciones = {
-  vacantes:    ["Gerente de Ventas", "Gerente de Operaciones", "Desarrollador Frontend", "Contador Senior"],
-  area:        ["Gerencia", "Marketing", "Finanzas", "Operaciones", "IT"],
-  reclutador:  ["Cristiana Espinoza", "Martha Torres", "Felix Urrutia"],
-}
 
 function FiltroBtn({ tipo, opciones, seleccionados, onChange }) {
   const [abierto, setAbierto] = useState(false)
@@ -102,14 +97,14 @@ function FiltroBtn({ tipo, opciones, seleccionados, onChange }) {
   )
 }
 
-function FiltrosPanel({ filtros, onChange, onLimpiar }) {
+function FiltrosPanel({ opciones, filtros, onChange, onLimpiar }) {
   return (
     <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-      {Object.entries(filtrosOpciones).map(([tipo, opciones]) => (
+      {Object.entries(opciones).map(([tipo, ops]) => (
         <FiltroBtn
           key={tipo}
           tipo={tipo}
-          opciones={opciones}
+          opciones={ops}
           seleccionados={filtros[tipo]}
           onChange={(vals) => onChange(tipo, vals)}
         />
@@ -122,13 +117,6 @@ function FiltrosPanel({ filtros, onChange, onLimpiar }) {
     </div>
   )
 }
-
-const candidatosData = [
-  { id: 1, nombre: "Osvaldo Rodriguez", email: "o.rodriguez@gmail.com", posicion: "Gerente de Ventas",      ciudad: "Managua", score: 94, etapa: "Recibido",        area: "Gerencia",    reclutador: "Cristiana Espinoza" },
-  { id: 2, nombre: "Endy Gonzalez",     email: "e.gonzalez@gmail.com",  posicion: "Gerente de Operaciones", ciudad: "León",    score: 86, etapa: "Analizado",       area: "Operaciones", reclutador: "Felix Urrutia"      },
-  { id: 3, nombre: "Martha Torres",     email: "m.torres@gmail.com",    posicion: "Desarrollador Frontend", ciudad: "Granada", score: 89, etapa: "Seleccionado",    area: "IT",          reclutador: "Martha Torres"      },
-  { id: 4, nombre: "David Espinoza",    email: "d.espinoza@gmail.com",  posicion: "Contador Senior",        ciudad: "Managua", score: 80, etapa: "Bajo Entrevista", area: "Finanzas",    reclutador: "Cristiana Espinoza" },
-]
 
 // Menú de acciones por candidato — usa portal para no quedar atrapado en overflow de la tabla
 function AccionesMenu({ pos, onActualizar, onDescartar, onEntrevista, onCorreo, onClose }) {
@@ -169,24 +157,38 @@ function AccionesMenu({ pos, onActualizar, onDescartar, onEntrevista, onCorreo, 
 }
 
 export default function CandidatosPage() {
-  const [candidatos, setCandidatos]   = useState(candidatosData)
+  const [tenantId]                    = useState(getTenantId)   // se lee del JWT una sola vez
+  const [candidatos, setCandidatos]   = useState([])
+  const [cargando, setCargando]       = useState(Boolean(tenantId))
+  const [error, setError]             = useState(
+    tenantId ? null : "No se pudo identificar tu empresa. Vuelve a iniciar sesión."
+  )
   const [busqueda, setBusqueda]       = useState("")
-  const [filtros, setFiltros]         = useState({ vacantes: [], area: [], reclutador: [] })
+  const [filtros, setFiltros]         = useState({ vacantes: [] })
   const [menuAbierto, setMenu]        = useState(null)   // id del candidato con menú abierto
   const [menuPos, setMenuPos]         = useState({ top: 0, right: 0 })
   const [modal, setModal]             = useState(null)   // "etapa" | "descartar" | null
   const [candidatoActivo, setCandidato] = useState(null)
   const [vista, setVista]             = useState("list") // "list" | "detalles"
 
+  useEffect(() => {
+    if (!tenantId) return
+    fetchApplications(tenantId)
+      .then((data) => setCandidatos(data))
+      .catch((err) => setError(err.message ?? "No se pudieron cargar los candidatos."))
+      .finally(() => setCargando(false))
+  }, [tenantId])
+
+  // Las opciones del filtro de vacantes salen de las posiciones reales cargadas.
+  const opcionesVacantes = [...new Set(candidatos.map((c) => c.posicion))]
+
   const filtrados = candidatos.filter((c) => {
     const matchBusqueda =
       c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       c.email.toLowerCase().includes(busqueda.toLowerCase()) ||
       c.posicion.toLowerCase().includes(busqueda.toLowerCase())
-    const matchVacantes   = filtros.vacantes.length   === 0 || filtros.vacantes.includes(c.posicion)
-    const matchArea       = filtros.area.length       === 0 || filtros.area.includes(c.area)
-    const matchReclutador = filtros.reclutador.length === 0 || filtros.reclutador.includes(c.reclutador)
-    return matchBusqueda && matchVacantes && matchArea && matchReclutador
+    const matchVacantes = filtros.vacantes.length === 0 || filtros.vacantes.includes(c.posicion)
+    return matchBusqueda && matchVacantes
   })
 
   const abrirDetalles   = (c) => { setCandidato(c); setVista("detalles") }
@@ -278,13 +280,19 @@ export default function CandidatosPage() {
               />
             </div>
             <FiltrosPanel
+              opciones={{ vacantes: opcionesVacantes }}
               filtros={filtros}
               onChange={(tipo, vals) => setFiltros((prev) => ({ ...prev, [tipo]: vals }))}
-              onLimpiar={() => setFiltros({ vacantes: [], area: [], reclutador: [] })}
+              onLimpiar={() => setFiltros({ vacantes: [] })}
             />
           </div>
 
           {/* Tabla */}
+          {cargando ? (
+            <p className="py-8 text-center text-sm text-slate-400">Cargando candidatos…</p>
+          ) : error ? (
+            <p className="py-8 text-center text-sm text-red-500">{error}</p>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[560px]">
               <thead>
@@ -312,7 +320,6 @@ export default function CandidatosPage() {
 
                     <td className="py-3">
                       <p className="text-slate-700">{c.posicion}</p>
-                      <p className="text-xs text-slate-400">{c.ciudad}</p>
                     </td>
 
                     <td className="py-3">
@@ -373,6 +380,7 @@ export default function CandidatosPage() {
               <p className="py-8 text-center text-sm text-slate-400">No se encontraron candidatos</p>
             )}
           </div>
+          )}
 
         </CardContent>
       </Card>
