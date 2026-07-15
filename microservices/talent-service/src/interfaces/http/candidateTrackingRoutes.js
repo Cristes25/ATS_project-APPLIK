@@ -1,4 +1,5 @@
 const candidateTrackingController = require('./candidateTrackingController');
+const notificationController = require('./notificationController');
 const candidateAuthInterceptor = require('../middleware/candidateAuthInterceptor');
 
 async function routes(fastify, options) {
@@ -54,6 +55,61 @@ async function routes(fastify, options) {
             }
         }
     }, candidateTrackingController.deleteBookmark);
+
+    // GET /api/v1/talents/me/notifications
+    fastify.get('/notifications', {
+        schema: {
+            description: 'Listar notificaciones del candidato.',
+            tags: ['Candidate Notifications'],
+            security: [{ bearerAuth: [] }],
+            querystring: {
+                type: 'object',
+                properties: {
+                    limit: { type: 'integer', default: 50 }
+                }
+            }
+        }
+    }, notificationController.getNotifications);
+
+    // POST /api/v1/talents/me/notifications/read-all
+    fastify.post('/notifications/read-all', {
+        schema: {
+            description: 'Marcar todas las notificaciones como leídas.',
+            tags: ['Candidate Notifications'],
+            security: [{ bearerAuth: [] }]
+        }
+    }, notificationController.markAllRead);
+
+    // PATCH /api/v1/talents/me/notifications/:id/read
+    fastify.patch('/notifications/:id/read', {
+        schema: {
+            description: 'Marcar una notificación como leída.',
+            tags: ['Candidate Notifications'],
+            security: [{ bearerAuth: [] }],
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: {
+                    id: { type: 'string', format: 'uuid' }
+                }
+            }
+        }
+    }, notificationController.markRead);
+
+    // POST /api/v1/talents/me/notifications/trigger-digest (Solo para pruebas en ambiente de desarrollo)
+    if (process.env.NODE_ENV !== 'production') {
+        fastify.post('/notifications/trigger-digest', {
+            schema: {
+                description: 'Disparar manualmente el Digest Semanal en ambiente de desarrollo.',
+                tags: ['Candidate Notifications'],
+                security: [{ bearerAuth: [] }]
+            }
+        }, async (request, reply) => {
+            const weeklyDigestService = require('../../core/services/weeklyDigestService');
+            await weeklyDigestService.runWeeklyDigest();
+            return reply.code(200).send({ success: true, message: 'Digest semanal disparado exitosamente.' });
+        });
+    }
 }
 
 module.exports = routes;

@@ -98,7 +98,7 @@ class CandidateController {
                 return reply.code(404).send({ error: 'Postulación no encontrada' });
             }
 
-            // (En caso extendido, aquí se comprobaría si el request.tenantId es el dueño de esta postulación)
+            const oldStatus = application.status;
             
             application.status = newStatus;
             await application.save();
@@ -109,6 +109,16 @@ class CandidateController {
                 stage: newStatus,
                 changed_at: new Date()
             });
+
+            // Disparar notificaciones / emails automáticos basados en la matriz de transiciones
+            const notificationService = require('../../core/services/notificationService');
+            if (oldStatus === 'postulado' && newStatus === 'revisando') {
+                notificationService.triggerNotification(application.id, 'application_reviewed');
+            } else if (newStatus === 'rechazado') {
+                notificationService.triggerNotification(application.id, 'application_rejected');
+            } else if (['seleccionado', 'entrevista', 'oferta_enviada', 'contratado'].includes(newStatus)) {
+                notificationService.triggerNotification(application.id, 'stage_advanced', { newStage: newStatus });
+            }
 
             return reply.code(200).send({
                 message: 'Estado del pipeline actualizado',

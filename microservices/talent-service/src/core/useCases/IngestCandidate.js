@@ -136,6 +136,14 @@ class IngestCandidateUseCase {
             }
 
             await transaction.commit();
+
+            if (application) {
+                const notificationService = require('../services/notificationService');
+                notificationService.triggerNotification(application.id, 'application_received').catch(err => {
+                    console.error('Error al disparar notificación de aplicación recibida:', err);
+                });
+            }
+
             return {
                 status: 'success',
                 message: 'Candidato ingestando y analizado con éxito',
