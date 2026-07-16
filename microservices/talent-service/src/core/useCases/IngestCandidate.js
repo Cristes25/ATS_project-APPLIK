@@ -46,8 +46,14 @@ class IngestCandidateUseCase {
             // const mockCandidateId = Math.floor(Math.random() * 1000000);
 
             // 2.5 Generar Vector Semántico del Perfil
-            // Se obtiene el array (vector) del AI Bridge
-            const embeddingVector = await aiClient.getEmbedding(rawCvText);
+            // Se obtiene el array (vector) del AI Bridge de manera segura
+            let embeddingVector = null;
+            try {
+                embeddingVector = await aiClient.getEmbedding(rawCvText);
+            } catch (err) {
+                console.error('[IngestCandidate] Error obteniendo embedding:', err.message);
+                embeddingVector = null;
+            }
             const mockVectorId = embeddingVector ? `em_local_${crypto.randomUUID().substring(0, 8)}` : null;
 
             // 3. Crear el Perfil Raíz
