@@ -79,6 +79,20 @@ async function routes(fastify, options) {
         }
     }, candidateController.getApplications.bind(candidateController));
 
+    // GET /api/v1/talents/applications/:id (Requiere JWT)
+    fastify.get('/applications/:id', {
+        schema: {
+            description: 'Obtener los detalles completos de una postulación.',
+            tags: ['Talent'],
+            security: [{ bearerAuth: [] }],
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: { id: { type: 'integer' } }
+            }
+        }
+    }, candidateController.getApplicationDetails.bind(candidateController));
+
     // ─── HISTORIAL DE ETAPAS ──────────────────────────────────────────────────
 
     // PATCH /api/v1/talents/applications/:id/stage

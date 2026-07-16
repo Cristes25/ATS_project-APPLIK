@@ -1,6 +1,6 @@
 const ingestCandidate = require('../../core/useCases/IngestCandidate');
 const jobClient = require('../../infrastructure/jobBridge/JobClient');
-const { Application, CandidateProfile, Job, Candidate, WorkExperience, Education, CandidateSkill, ApplicationStageHistory, sequelize } = require('../../core/domain/models');
+const { Application, CandidateProfile, Job, Candidate, WorkExperience, Education, CandidateSkill, Skill, ApplicationStageHistory, sequelize } = require('../../core/domain/models');
 
 class CandidateController {
 
@@ -312,6 +312,106 @@ class CandidateController {
             }
             request.log.error('Fallo eliminando datos del candidato:', error);
             return reply.code(500).send({ error: 'Error interno al procesar eliminación.' });
+        }
+    }
+
+    /**
+     * GET /api/v1/talents/applications/:id
+     * Recupera el detalle completo de un candidato y su postulación (incluyendo educación, experiencia y habilidades).
+     */
+    async getApplicationDetails(request, reply) {
+        const { id } = request.params;
+        const applicationIdInt = parseInt(id, 10);
+
+        if (isNaN(applicationIdInt)) {
+            return reply.code(400).send({ error: 'ID de postulación inválido.' });
+        }
+
+        try {
+            const application = await Application.findByPk(applicationIdInt, {
+                include: [
+                    {
+                        model: Job,
+                        as: 'job',
+                        attributes: ['title', 'tenant_id']
+                    },
+                    {
+                        model: CandidateProfile,
+                        include: [
+                            {
+                                model: Candidate,
+                                as: 'candidate',
+                                attributes: ['first_name', 'last_name', 'email']
+                            },
+                            {
+                                model: WorkExperience,
+                                as: 'work_experiences'
+                            },
+                            {
+                                model: Education,
+                                as: 'educations'
+                            },
+                            {
+                                model: CandidateSkill,
+                                as: 'candidate_skills',
+                                include: [{
+                                    model: Skill,
+                                    as: 'skill_details',
+                                    attributes: ['name']
+                                }]
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            if (!application) {
+                return reply.code(404).send({ error: 'Postulación no encontrada.' });
+            }
+
+            // Ley 787: Aislamiento por Tenant (Solo el dueño de la vacante puede ver los detalles)
+            const job = application.job || {};
+            if (request.tenantId && job.tenant_id !== request.tenantId) {
+                return reply.code(403).send({ error: 'Acceso denegado: esta postulación pertenece a otra organización.' });
+            }
+
+            const profile = application.CandidateProfile || {};
+            const candidate = profile.candidate || {};
+            const candidateName = candidate.first_name && candidate.last_name
+                ? `${candidate.first_name} ${candidate.last_name}`
+                : 'Candidato Ingestado';
+
+            const scorePercent = application.match_score 
+                ? Math.round(parseFloat(application.match_score) * 100) 
+                : 0;
+
+            // Formatear Habilidades
+            const candidateSkills = profile.candidate_skills || [];
+            const formattedSkills = candidateSkills.map(cs => ({
+                id: cs.id,
+                name: cs.skill_details ? cs.skill_details.name : 'Habilidad',
+                level: cs.level
+            }));
+
+            const responseData = {
+                application_id: application.id,
+                candidate_name: candidateName,
+                email: candidate.email || profile.linkedin_url || '',
+                location: profile.location || 'Managua',
+                headline: profile.headline || 'Candidato',
+                resume_url: profile.resume_url || '',
+                stage: application.status,
+                match_score: scorePercent,
+                applied_at: application.applied_at,
+                educations: profile.educations || [],
+                work_experiences: profile.work_experiences || [],
+                skills: formattedSkills
+            };
+
+            return reply.code(200).send(responseData);
+        } catch (error) {
+            request.log.error({ err: error }, 'Error al recuperar detalles de la postulación:');
+            return reply.code(500).send({ error: 'Error interno del servidor al recuperar detalles del candidato.' });
         }
     }
 }
