@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react"
-import { createPortal } from "react-dom"
+import { useState, useEffect } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { Search, MapPin, Layers, Clock, ChevronLeft, ChevronRight, Building2, ChevronDown, X } from "lucide-react"
+import { Search, Clock, ChevronLeft, ChevronRight, Building2 } from "lucide-react"
 import { fetchPublicJobs } from "@/api/jobs"
 import { getTenantId } from "@/lib/token"
 import { Avatar } from "@/components/ui/Avatar"
@@ -25,88 +24,6 @@ const empresas = [
   { nombre: "Clínica Santamaría",   logo: clinicaSanta },
   { nombre: "Nicashoe",             logo: nicashoe     },
 ]
-const ubicaciones = ["Managua", "León", "Granada", "Masaya", "Remoto"]
-const categorias  = ["Tecnología", "Marketing", "Finanzas", "Operaciones", "Diseño"]
-const modalidades = ["Full-Time", "Part-Time", "Remoto", "Híbrido"]
-
-// ─── Sub-componentes ──────────────────────────────────────────────────────────
-
-// Dropdown con portal — flota sobre todo, nunca se corta
-function AnimatedDropdown({ icon: Icon, placeholder, options }) {
-  const [valor,   setValor]   = useState("")
-  const [abierto, setAbierto] = useState(false)
-  const [pos,     setPos]     = useState({ top: 0, left: 0, width: 0 })
-  const triggerRef = useRef(null)
-  const dropdownRef = useRef(null)
-
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (
-        triggerRef.current && !triggerRef.current.contains(e.target) &&
-        dropdownRef.current && !dropdownRef.current.contains(e.target)
-      ) setAbierto(false)
-    }
-    const handleScroll = () => setAbierto(false)
-
-    document.addEventListener("mousedown", handleClick)
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => {
-      document.removeEventListener("mousedown", handleClick)
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [])
-
-  const handleToggle = () => {
-    if (!abierto && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect()
-      setPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
-    }
-    setAbierto(!abierto)
-  }
-
-  return (
-    <div className="border-b border-slate-100 last:border-0">
-      <button
-        ref={triggerRef}
-        onClick={handleToggle}
-        className="flex w-full items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
-      >
-        <Icon className="size-4 shrink-0 text-slate-400" />
-        <span className={`flex-1 text-left text-sm ${valor ? "text-violet-600 font-medium" : "text-slate-400"}`}>
-          {valor || placeholder}
-        </span>
-        {valor
-          ? <X className="size-4 text-slate-300 hover:text-slate-500" onClick={(e) => { e.stopPropagation(); setValor(""); setAbierto(false) }} />
-          : <ChevronDown className={`size-4 text-slate-300 transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} />
-        }
-      </button>
-
-      {abierto && createPortal(
-        <div
-          ref={dropdownRef}
-          className="fixed z-50 rounded-xl border border-slate-100 bg-white py-1 shadow-lg animate-dropdown"
-          style={{ top: pos.top, left: pos.left, width: pos.width }}
-        >
-          {options.map((o, i) => (
-            <button
-              key={o}
-              onClick={() => { setValor(valor === o ? "" : o); setAbierto(false) }}
-              className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition-colors animate-fadeItem ${
-                valor === o ? "bg-violet-50 text-violet-700 font-semibold" : "text-slate-600 hover:bg-slate-50"
-              }`}
-              style={{ animationDelay: `${i * 40}ms` }}
-            >
-              <span>{o}</span>
-              {valor === o && <X className="size-3.5 text-violet-400" />}
-            </button>
-          ))}
-        </div>,
-        document.body
-      )}
-    </div>
-  )
-}
-
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 function useEmpresasVisibles() {
@@ -184,10 +101,6 @@ export default function InicioPage() {
               />
             </div>
 
-            <AnimatedDropdown icon={MapPin} placeholder="Ubicación"  options={ubicaciones} />
-            <AnimatedDropdown icon={Layers} placeholder="Categoría"  options={categorias}  />
-            <AnimatedDropdown icon={Clock}  placeholder="Modalidad"  options={modalidades} />
-
             <div className="p-3">
               <button
                 onClick={handleBuscar}
@@ -207,8 +120,8 @@ export default function InicioPage() {
 
       {/* ── Coincidencias ── */}
       <section>
-        <h2 className="text-lg font-bold text-slate-800">Vacantes recomendadas</h2>
-        <p className="mb-4 text-sm text-slate-400">Basadas en las habilidades y experiencia de tu CV</p>
+        <h2 className="text-lg font-bold text-slate-800">Vacantes destacadas</h2>
+        <p className="mb-4 text-sm text-slate-400">Explora las oportunidades publicadas</p>
 
         {cargando ? (
           <p className="text-sm text-slate-400">Cargando...</p>
@@ -232,9 +145,6 @@ export default function InicioPage() {
                       <h3 className="font-semibold text-slate-800 text-sm leading-tight">{job.title}</h3>
                       <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
                         <Building2 className="size-3" /> {dept}
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-slate-400">
-                        <MapPin className="size-3" /> Managua
                       </div>
                       <div className="flex items-center gap-1 text-xs text-slate-400">
                         <Clock className="size-3" /> {salary}
@@ -283,9 +193,6 @@ export default function InicioPage() {
                         <Building2 className="size-3" /> {dept}
                       </div>
                       <div className="flex items-center gap-1 text-xs text-slate-400">
-                        <MapPin className="size-3" /> Managua
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-slate-400">
                         <Clock className="size-3" /> {salary}
                       </div>
                     </div>
@@ -306,7 +213,7 @@ export default function InicioPage() {
       {/* ── Empresas Destacadas ── */}
       <section>
         <h2 className="text-lg font-bold text-slate-800">Empresas Destacadas</h2>
-        <p className="mb-6 text-sm text-slate-400">Descubre oportunidades laborales en tus empresas favoritas</p>
+        <p className="mb-6 text-sm text-slate-400">Empresas que confían en APPLIK</p>
 
         <div className="flex items-center gap-3">
           <button
@@ -320,7 +227,7 @@ export default function InicioPage() {
             {Array.from({ length: empresasVisibles }, (_, i) => empresas[(empresaIdx + i) % empresas.length]).map((e, i) => (
               <div
                 key={`${e.nombre}-${i}`}
-                className="flex flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white py-4 px-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md cursor-pointer"
+                className="flex flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white py-4 px-3 shadow-sm"
                 style={{ minHeight: 80 }}
               >
                 <img

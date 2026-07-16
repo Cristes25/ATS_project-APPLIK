@@ -7,7 +7,6 @@ import { updateMe, changePassword } from "@/api/auth"
 
 export default function PerfilPage({ onBack }) {
   const { user, updateUser } = useAuth()
-  const token = localStorage.getItem("applik_token")
 
   // Formulario de información personal
   const [nombre,        setNombre]        = useState(user?.first_name ?? "")
@@ -36,7 +35,7 @@ export default function PerfilPage({ onBack }) {
     setErrorInfo("")
     setExitoInfo(false)
     try {
-      const res = await updateMe(token, { first_name: nombre, last_name: apellido })
+      const res = await updateMe({ first_name: nombre, last_name: apellido })
       const datos = res.data ?? res
       updateUser({ ...datos, name: `${datos.first_name ?? nombre} ${datos.last_name ?? apellido}`.trim() })
       setExitoInfo(true)
@@ -57,7 +56,7 @@ export default function PerfilPage({ onBack }) {
     setErrorPass("")
     setExitoPass(false)
     try {
-      await changePassword(token, { currentPassword: contrasenaActual, newPassword: contrasenaNueva })
+      await changePassword({ currentPassword: contrasenaActual, newPassword: contrasenaNueva })
       setExitoPass(true)
       setContrasenaActual("")
       setContrasenaNueva("")

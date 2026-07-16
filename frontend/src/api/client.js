@@ -7,6 +7,10 @@ export async function apiFetch(url, { auth = true, ...options } = {}) {
   const res = await fetch(url, { ...options, headers })
   let data
   try { data = await res.json() } catch { data = {} }
-  if (!res.ok) throw new Error(data.error ?? data.message ?? "Error del servidor")
+  if (!res.ok) {
+    const error = new Error(data.error ?? data.message ?? "Error del servidor")
+    error.status = res.status
+    throw error
+  }
   return data
 }

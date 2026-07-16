@@ -2,14 +2,13 @@ import { useState } from "react"
 import { ArrowLeft, Mail, Loader2, CheckCircle2, Users } from "lucide-react"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/button"
+import { createInvitation } from "@/api/auth"
 
 export default function EquipoPage({ onBack }) {
   const [email,    setEmail]    = useState("")
   const [enviando, setEnviando] = useState(false)
   const [exito,    setExito]    = useState(null)
   const [error,    setError]    = useState("")
-
-  const token = localStorage.getItem("applik_token")
 
   const handleInvitar = async (e) => {
     e.preventDefault()
@@ -18,13 +17,7 @@ export default function EquipoPage({ onBack }) {
     setExito(null)
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_AUTH_SERVICE_URL}/api/v1/auth/invitations/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ email }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message ?? "Error al enviar la invitación")
+      await createInvitation(email)
       setExito(email)
       setEmail("")
     } catch (err) {

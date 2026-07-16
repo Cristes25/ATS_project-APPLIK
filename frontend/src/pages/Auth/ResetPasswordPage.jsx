@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, KeyRound, ShieldCheck } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import { PasswordToggle } from "@/components/ui/PasswordToggle";
+import { resetPassword } from "@/api/auth";
 
 const ResetPasswordPage = () => {
     const [searchParams] = useSearchParams();
@@ -25,19 +26,10 @@ const ResetPasswordPage = () => {
         setLoading(true);
         setError("");
         try {
-            const res = await fetch(`${import.meta.env.VITE_AUTH_SERVICE_URL}/api/v1/auth/reset-password`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token, newPassword: nuevaContrasena }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                setError(data.message || "Ocurrió un error. Intenta de nuevo.");
-                return;
-            }
+            await resetPassword(token, nuevaContrasena);
             setExitoso(true);
-        } catch {
-            setError("No se pudo conectar. Intenta de nuevo.");
+        } catch (err) {
+            setError(err.message || "Ocurrió un error. Intenta de nuevo.");
         } finally {
             setLoading(false);
         }

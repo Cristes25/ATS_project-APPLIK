@@ -4,7 +4,9 @@ import MainLayout from './components/layout/MainLayout';
 import ApplicantLayout from './components/layout/ApplicantLayout/ApplicantLayout';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import LandingPage from './pages/Landing/LandingPage';
+
+// Landing — lazy para aislar framer-motion fuera del bundle inicial
+const LandingPage = lazy(() => import('./pages/Landing/LandingPage'));
 
 // Páginas del dashboard de reclutador
 const VacantesPage       = lazy(() => import('./pages/Vacantes/VacantesPage'));
