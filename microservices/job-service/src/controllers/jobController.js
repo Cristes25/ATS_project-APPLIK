@@ -1,4 +1,7 @@
-const { Job, Department } = require('../models');
+const { Job, Department, sequelize } = require('../models');
+
+// POST /jobs
+// ... (rest of code is unmodified but this replacement is contiguous)
 
 // POST /jobs
 exports.createJob = async (request, reply) => {
@@ -143,15 +146,104 @@ exports.getPublicJobs = async (request, reply) => {
   const { tenant_id, limit = 20, offset = 0 } = request.query;
 
   try {
-    const { count, rows: jobs } = await Job.findAndCountAll({
+    // 1. Extraer e intentar autenticar candidato si se envía token
+    let candidateId = null;
+    const authHeader = request.headers.authorization;
+    if (authHeader) {
+      try {
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = request.server.jwt.verify(token);
+        if (decoded.role === 'aplicante' || decoded.role === 'candidate') {
+          candidateId = decoded.user_id;
+        }
+      } catch (err) {
+        request.log.error(err, 'Error decoding candidate token in getPublicJobs');
+      }
+    }
+
+    // 2. Si hay candidato autenticado, buscar su perfil en la base de datos
+    let candidateProfile = null;
+    if (candidateId) {
+      const rows = await sequelize.query(`
+        SELECT cp.id, cp.location, cp.headline,
+               ARRAY_AGG(s.name) FILTER (WHERE s.name IS NOT NULL) as skills
+        FROM candidate_profiles cp
+        LEFT JOIN candidate_skills cs ON cs.profile_id = cp.id
+        LEFT JOIN skills s ON s.id = cs.skill_id
+        WHERE cp.candidate_id = :candidateId
+        GROUP BY cp.id, cp.location, cp.headline
+        LIMIT 1
+      `, {
+        replacements: { candidateId },
+        type: sequelize.QueryTypes.SELECT
+      });
+      if (rows && rows.length > 0) {
+        candidateProfile = rows[0];
+      }
+    }
+
+    // 3. Obtener vacantes del tenant
+    const jobs = await Job.findAll({
       where: { tenant_id, status: 'published' },
       include: [{ model: Department, attributes: ['name'] }],
       attributes: ['id', 'public_token', 'title', 'description', 'requirements', 'salary_min', 'salary_max', 'currency', 'closes_at', 'createdAt'],
-      order: [['createdAt', 'DESC']],
-      limit,
-      offset,
     });
-    return reply.send({ total: count, limit, offset, data: jobs });
+
+    let mappedJobs = jobs.map(job => {
+      const jobJson = job.toJSON();
+      if (candidateProfile) {
+        // Calcular Match Score Heurístico
+        let score = 55; // Base inicial
+
+        // 1. Comparación por título / headline
+        const jobTitle = (jobJson.title || '').toLowerCase();
+        const headline = (candidateProfile.headline || '').toLowerCase();
+        if (jobTitle && headline) {
+          if (jobTitle.includes(headline) || headline.includes(jobTitle)) {
+            score += 15;
+          }
+        }
+
+        // 2. Habilidades
+        const candidateSkills = candidateProfile.skills || [];
+        const jobRequirements = (jobJson.requirements || '').toLowerCase();
+        const jobDescription = (jobJson.description || '').toLowerCase();
+        
+        let matchedSkills = 0;
+        candidateSkills.forEach(skillName => {
+          const lowerSkill = (skillName || '').toLowerCase();
+          if (lowerSkill && (jobRequirements.includes(lowerSkill) || jobDescription.includes(lowerSkill))) {
+            matchedSkills++;
+          }
+        });
+
+        score += Math.min(matchedSkills * 8, 25);
+
+        // 3. Ubicación (Fallback a 'managua' si la vacante no tiene ubicación)
+        const candidateLoc = (candidateProfile.location || '').toLowerCase();
+        const jobLoc = (jobJson.location || 'managua').toLowerCase();
+        if (candidateLoc && jobLoc && (candidateLoc.includes(jobLoc) || jobLoc.includes(candidateLoc))) {
+          score += 10;
+        }
+
+        const finalScore = Math.min(score, 98);
+        jobJson.match = `Compatibilidad: ${finalScore}%`;
+        jobJson.match_score = finalScore;
+      }
+      return jobJson;
+    });
+
+    // 4. Ordenar por match_score si hay perfil, de lo contrario por fecha
+    if (candidateProfile) {
+      mappedJobs.sort((a, b) => b.match_score - a.match_score);
+    } else {
+      mappedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    const total = mappedJobs.length;
+    const paginated = mappedJobs.slice(offset, offset + limit);
+
+    return reply.send({ total, limit, offset, data: paginated });
   } catch (error) {
     request.log.error(error);
     return reply.code(500).send({ error: `Database error: ${error.message}` });

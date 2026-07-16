@@ -8,6 +8,25 @@ const updateStage = async (request, reply) => {
     const { id } = request.params;
     const { stage } = request.body;
 
+    const labelToEnum = {
+        'Recibido': 'postulado',
+        'Analizado': 'revisando',
+        'Bajo Entrevista': 'entrevista',
+        'Seleccionado': 'seleccionado',
+        'Oferta Enviada': 'oferta_enviada',
+        'Contratado': 'contratado',
+        'Rechazado': 'rechazado',
+        'recibido': 'postulado',
+        'analizado': 'revisando',
+        'bajo entrevista': 'entrevista',
+        'seleccionado': 'seleccionado',
+        'oferta enviada': 'oferta_enviada',
+        'contratado': 'contratado',
+        'rechazado': 'rechazado'
+    };
+
+    const targetStage = labelToEnum[stage] || stage;
+
     try {
         const application = await Application.findByPk(id);
         if (!application) {
@@ -19,21 +38,21 @@ const updateStage = async (request, reply) => {
         // Registra el cambio en el historial
         const historyEntry = await ApplicationStageHistory.create({
             application_id: application.id,
-            stage,
+            stage: targetStage,
             changed_at: new Date(),
         });
 
         // Actualiza el status en la tabla principal también
-        await application.update({ status: stage });
+        await application.update({ status: targetStage });
 
         // Disparar notificaciones / emails automáticos basados en la matriz de transiciones
         const notificationService = require('../../core/services/notificationService');
-        if (oldStatus === 'postulado' && stage === 'revisando') {
+        if (oldStatus === 'postulado' && targetStage === 'revisando') {
             notificationService.triggerNotification(application.id, 'application_reviewed');
-        } else if (stage === 'rechazado') {
+        } else if (targetStage === 'rechazado') {
             notificationService.triggerNotification(application.id, 'application_rejected');
-        } else if (['seleccionado', 'entrevista', 'oferta_enviada', 'contratado'].includes(stage)) {
-            notificationService.triggerNotification(application.id, 'stage_advanced', { newStage: stage });
+        } else if (['seleccionado', 'entrevista', 'oferta_enviada', 'contratado'].includes(targetStage)) {
+            notificationService.triggerNotification(application.id, 'stage_advanced', { newStage: targetStage });
         }
 
         return reply.code(200).send({

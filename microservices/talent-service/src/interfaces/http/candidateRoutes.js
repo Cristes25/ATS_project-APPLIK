@@ -57,7 +57,14 @@ async function routes(fastify, options) {
                 type: 'object',
                 required: ['newStatus'],
                 properties: {
-                    newStatus: { type: 'string', enum: ['postulado', 'revisando', 'entrevista', 'rechazado', 'contratado'] }
+                    newStatus: {
+                        type: 'string',
+                        enum: [
+                            'postulado', 'revisando', 'entrevista', 'seleccionado', 'oferta_enviada', 'contratado', 'rechazado',
+                            'Recibido', 'Analizado', 'Bajo Entrevista', 'Seleccionado', 'Oferta Enviada', 'Contratado', 'Rechazado',
+                            'recibido', 'analizado', 'bajo entrevista', 'oferta enviada'
+                        ]
+                    }
                 }
             }
         }

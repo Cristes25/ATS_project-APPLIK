@@ -92,6 +92,25 @@ class CandidateController {
         const { id } = request.params;
         const { newStatus } = request.body; // ej. 'entrevista'
 
+        const labelToEnum = {
+            'Recibido': 'postulado',
+            'Analizado': 'revisando',
+            'Bajo Entrevista': 'entrevista',
+            'Seleccionado': 'seleccionado',
+            'Oferta Enviada': 'oferta_enviada',
+            'Contratado': 'contratado',
+            'Rechazado': 'rechazado',
+            'recibido': 'postulado',
+            'analizado': 'revisando',
+            'bajo entrevista': 'entrevista',
+            'seleccionado': 'seleccionado',
+            'oferta enviada': 'oferta_enviada',
+            'contratado': 'contratado',
+            'rechazado': 'rechazado'
+        };
+
+        const targetStatus = labelToEnum[newStatus] || newStatus;
+
         try {
             const application = await Application.findByPk(id);
             if (!application) {
@@ -100,24 +119,24 @@ class CandidateController {
 
             const oldStatus = application.status;
             
-            application.status = newStatus;
+            application.status = targetStatus;
             await application.save();
 
             // Registrar el cambio de etapa en el historial
             await ApplicationStageHistory.create({
                 application_id: application.id,
-                stage: newStatus,
+                stage: targetStatus,
                 changed_at: new Date()
             });
 
             // Disparar notificaciones / emails automáticos basados en la matriz de transiciones
             const notificationService = require('../../core/services/notificationService');
-            if (oldStatus === 'postulado' && newStatus === 'revisando') {
+            if (oldStatus === 'postulado' && targetStatus === 'revisando') {
                 notificationService.triggerNotification(application.id, 'application_reviewed');
-            } else if (newStatus === 'rechazado') {
+            } else if (targetStatus === 'rechazado') {
                 notificationService.triggerNotification(application.id, 'application_rejected');
-            } else if (['seleccionado', 'entrevista', 'oferta_enviada', 'contratado'].includes(newStatus)) {
-                notificationService.triggerNotification(application.id, 'stage_advanced', { newStage: newStatus });
+            } else if (['seleccionado', 'entrevista', 'oferta_enviada', 'contratado'].includes(targetStatus)) {
+                notificationService.triggerNotification(application.id, 'stage_advanced', { newStage: targetStatus });
             }
 
             return reply.code(200).send({
@@ -158,12 +177,10 @@ class CandidateController {
                     {
                         model: Job,
                         as: 'job',
-                        where: { tenant_id: tenantIdInt },
-                        attributes: ['title']
+                        attributes: ['title', 'tenant_id']
                     },
                     {
                         model: CandidateProfile,
-                        attributes: ['linkedin_url'],
                         include: [
                             {
                                 model: Candidate,
@@ -176,7 +193,10 @@ class CandidateController {
                 order: [['applied_at', 'DESC']]
             });
 
-            const mapped = applications.map(app => {
+            // Filtrar postulaciones por tenant_id de la vacante de forma segura en JS
+            const filteredApplications = applications.filter(app => app.job && app.job.tenant_id === tenantIdInt);
+
+            const mapped = filteredApplications.map(app => {
                 const profile = app.CandidateProfile || {};
                 const candidate = profile.candidate || null;
 

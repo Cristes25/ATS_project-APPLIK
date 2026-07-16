@@ -29,7 +29,8 @@ export const createDepartment = (name) =>
   apiFetch(`${JOB}/api/v1/departments`, { method: "POST", body: JSON.stringify({ name }) })
 
 export async function fetchPublicJobs(tenantId) {
-  const data = await apiFetch(`${JOB}/api/v1/jobs/public?tenant_id=${tenantId}`, { auth: false })
+  const token = localStorage.getItem("applik_token")
+  const data = await apiFetch(`${JOB}/api/v1/jobs/public?tenant_id=${tenantId}`, { auth: !!token })
   return Array.isArray(data.data) ? data.data : data
 }
 
