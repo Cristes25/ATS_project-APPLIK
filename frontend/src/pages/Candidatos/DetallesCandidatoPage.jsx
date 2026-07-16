@@ -4,6 +4,7 @@ import { Avatar } from "@/components/ui/Avatar"
 import { StageBadge } from "@/components/ui/StageBadge"
 import { Button } from "@/components/ui/button"
 import { STAGES } from "@/components/ui/StageBadge"
+import { matchScoreAPorcentaje } from "@/lib/matchScore"
 
 // Genera historial mock realista hasta la etapa actual
 function generarHistorial(etapaActual) {
@@ -23,10 +24,12 @@ function generarHistorial(etapaActual) {
 }
 
 export default function DetallesCandidatoPage({ candidato, onBack, onActualizarEtapa, onDescartar }) {
-  if (!candidato) return null
   const [notas,    setNotas]    = useState("")
   const [guardado, setGuardado] = useState(false)
+
+  if (!candidato) return null
   const historial = generarHistorial(candidato.etapa)
+  const scorePct = matchScoreAPorcentaje(candidato.score)
 
   const handleGuardarNotas = () => {
     if (!notas.trim()) return
@@ -71,12 +74,14 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
           <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
             <div>
               <p className="text-xs text-slate-400">Match Score</p>
-              <p className="text-2xl font-bold text-blue-dark">{candidato.score}%</p>
+              <p className="text-2xl font-bold text-blue-dark">
+                {scorePct == null ? "Sin analizar" : `${scorePct}%`}
+              </p>
             </div>
             <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-blue-dark to-teal-light"
-                style={{ width: `${candidato.score}%` }}
+                style={{ width: `${scorePct ?? 0}%` }}
               />
             </div>
             <StageBadge stage={candidato.etapa} />
