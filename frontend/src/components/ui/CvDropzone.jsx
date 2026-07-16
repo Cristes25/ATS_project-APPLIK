@@ -1,15 +1,20 @@
 import { useState, useRef } from "react"
 import { Upload, FileText, X, CheckCircle2, Loader2 } from "lucide-react"
 import Ley787Modal from "@/components/ui/Ley787Modal"
-import * as pdfjsLib from "pdfjs-dist"
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).href
+// pdfjs es pesado y solo se necesita para PDFs — se carga bajo demanda
+async function cargarPdfjs() {
+  const pdfjsLib = await import("pdfjs-dist")
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).href
+  return pdfjsLib
+}
 
 async function extractText(file) {
   if (file.name.split(".").pop().toLowerCase() === "pdf") {
+    const pdfjsLib = await cargarPdfjs()
     const arrayBuffer = await file.arrayBuffer()
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
     const pages = []
