@@ -2,16 +2,12 @@ import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import {
-  Search, MapPin, Layers, Clock, ChevronDown, ChevronLeft, ChevronRight,
-  User, Sparkles, SlidersHorizontal, ArrowLeft, Building2, CheckCircle2, X,
+  Search, MapPin, ChevronDown, ChevronLeft, ChevronRight,
+  User, SlidersHorizontal, ArrowLeft, Building2, CheckCircle2,
 } from "lucide-react"
 import { fetchPublicJobs } from "@/api/jobs"
 import { getTenantId } from "@/lib/token"
 
-const ubicaciones  = ["Managua", "León", "Granada", "Masaya"]
-const categorias   = ["Marketing", "Ventas", "Tecnología", "Finanzas"]
-const tiposTrabajo = ["Full-Time", "Part-Time", "Remoto"]
-const niveles      = ["Junior", "Senior", "Mid-Level", "Director"]
 const ordenOpciones = ["Más recientes", "Más relevantes", "Mayor salario"]
 
 const POR_PAGINA = 6
@@ -88,97 +84,12 @@ function OrdenarDropdown({ valor, onChange }) {
   )
 }
 
-// ─── Dropdown del buscador (portal) ──────────────────────────────────────────
-
-function SearchDropdown({ icon: Icon, placeholder, options }) {
-  const [valor,   setValor]   = useState("")
-  const [abierto, setAbierto] = useState(false)
-  const [pos,     setPos]     = useState({ top: 0, left: 0, width: 0 })
-  const triggerRef  = useRef(null)
-  const dropdownRef = useRef(null)
-
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (
-        triggerRef.current  && !triggerRef.current.contains(e.target) &&
-        dropdownRef.current && !dropdownRef.current.contains(e.target)
-      ) setAbierto(false)
-    }
-    const handleScroll = () => setAbierto(false)
-    document.addEventListener("mousedown", handleClick)
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => {
-      document.removeEventListener("mousedown", handleClick)
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [])
-
-  const handleToggle = () => {
-    if (!abierto && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect()
-      setPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
-    }
-    setAbierto(!abierto)
-  }
-
-  const handleSelect = (o) => {
-    setValor(valor === o ? "" : o) // toggle: click mismo → deselecciona
-    setAbierto(false)
-  }
-
-  return (
-    <div className="border-b border-slate-100 last:border-0">
-      <button
-        ref={triggerRef}
-        onClick={handleToggle}
-        className="flex w-full items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
-      >
-        <Icon className="size-4 shrink-0 text-slate-400" />
-        <span className={`flex-1 text-left text-sm ${valor ? "text-violet-600 font-medium" : "text-slate-400"}`}>
-          {valor || placeholder}
-        </span>
-        {valor ? (
-          <button
-            onClick={(e) => { e.stopPropagation(); setValor("") }}
-            className="text-slate-300 hover:text-slate-500 transition-colors"
-          >
-            <X className="size-3.5" />
-          </button>
-        ) : (
-          <ChevronDown className={`size-4 text-slate-300 transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} />
-        )}
-      </button>
-
-      {abierto && createPortal(
-        <div
-          ref={dropdownRef}
-          className="fixed z-50 rounded-xl border border-slate-100 bg-white py-1 shadow-lg animate-dropdown"
-          style={{ top: pos.top, left: pos.left, width: pos.width }}
-        >
-          {options.map((o, i) => (
-            <button
-              key={o}
-              onClick={() => handleSelect(o)}
-              className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition-colors animate-fadeItem ${
-                valor === o ? "bg-violet-50 text-violet-700 font-semibold" : "text-slate-600 hover:bg-slate-50"
-              }`}
-              style={{ animationDelay: `${i * 40}ms` }}
-            >
-              <span>{o}</span>
-              {valor === o && <X className="size-3.5 text-violet-400" />}
-            </button>
-          ))}
-        </div>,
-        document.body
-      )}
-    </div>
-  )
-}
-
 // ─── Sección de filtro en sidebar ─────────────────────────────────────────────
 
 function FiltroSeccion({ titulo, opciones, seleccionados, onToggle }) {
   const [abierto, setAbierto] = useState(true)
+
+  if (opciones.length === 0) return null
 
   return (
     <div className="border-b border-slate-100 py-4">
@@ -215,14 +126,11 @@ function FiltroSeccion({ titulo, opciones, seleccionados, onToggle }) {
 
 // ─── Sidebar de filtros ───────────────────────────────────────────────────────
 
-function SidebarFiltros({ filtros, onToggle, onAplicar }) {
+function SidebarFiltros({ categorias, filtros, onToggle, onAplicar }) {
   return (
     <div className="w-full">
       <h2 className="mb-2 text-base font-bold text-slate-800">Filtros</h2>
-      <FiltroSeccion titulo="Categoría"          opciones={categorias}   seleccionados={filtros.categorias}  onToggle={(v) => onToggle("categorias", v)}  />
-      <FiltroSeccion titulo="Ubicación"          opciones={ubicaciones}  seleccionados={filtros.ubicaciones} onToggle={(v) => onToggle("ubicaciones", v)} />
-      <FiltroSeccion titulo="Tipo de trabajo"    opciones={tiposTrabajo} seleccionados={filtros.tipos}       onToggle={(v) => onToggle("tipos", v)}       />
-      <FiltroSeccion titulo="Nivel de Experiencia" opciones={niveles}    seleccionados={filtros.niveles}     onToggle={(v) => onToggle("niveles", v)}     />
+      <FiltroSeccion titulo="Categoría" opciones={categorias} seleccionados={filtros.categorias} onToggle={(v) => onToggle("categorias", v)} />
       <button
         onClick={onAplicar}
         className="mt-4 w-full rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white transition-all hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5 active:scale-[0.98]"
@@ -253,7 +161,7 @@ function JobCard({ job }) {
             </div>
             <div className="flex items-center gap-1.5 text-xs text-slate-500">
               <MapPin className="size-3.5 shrink-0" />
-              <span>Nicaragua • {job.tipo ?? "Full Time"}</span>
+              <span>Nicaragua</span>
             </div>
           </div>
         </div>
@@ -264,12 +172,6 @@ function JobCard({ job }) {
           Ver detalles
         </button>
       </div>
-      {job.match && (
-        <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1.5">
-          <Sparkles className="size-3.5 shrink-0 text-teal-500" />
-          <span className="text-xs text-teal-600">{job.match}</span>
-        </div>
-      )}
     </div>
   )
 }
@@ -287,12 +189,7 @@ export default function TrabajosPage() {
   const [cargando,        setCargando]        = useState(false)
   const [error,           setError]           = useState("")
 
-  const [filtros, setFiltros] = useState({
-    categorias:  [],
-    ubicaciones: [],
-    tipos:       [],
-    niveles:     [],
-  })
+  const [filtros, setFiltros] = useState({ categorias: [] })
   const [filtrosAplicados, setFiltrosAplicados] = useState(filtros)
 
   useEffect(() => {
@@ -304,6 +201,9 @@ export default function TrabajosPage() {
       .catch(err => setError(err.message ?? "No se pudieron cargar las vacantes"))
       .finally(() => setCargando(false))
   }, [])
+
+  // Categorías reales: departamentos únicos de las vacantes disponibles
+  const categorias = [...new Set(vacantesReales.map((j) => j.Department?.name).filter(Boolean))].sort()
 
   const toggleFiltro = (clave, valor) => {
     setFiltros((prev) => {
@@ -321,17 +221,12 @@ export default function TrabajosPage() {
     setFiltrosMobile(false)
   }
 
-  const listaBase = vacantesReales
-
-  const resultados = listaBase.filter((j) => {
+  const resultados = vacantesReales.filter((j) => {
     const titulo  = j.titulo ?? j.title ?? ""
     const empresa = j.empresa ?? j.Department?.name ?? ""
     const matchQ = !busqueda || titulo.toLowerCase().includes(busqueda.toLowerCase()) || empresa.toLowerCase().includes(busqueda.toLowerCase())
-    const matchC = filtrosAplicados.categorias.length  === 0 || filtrosAplicados.categorias.includes(j.categoria ?? j.Department?.name)
-    const matchU = filtrosAplicados.ubicaciones.length === 0 || filtrosAplicados.ubicaciones.includes(j.ubicacion)
-    const matchT = filtrosAplicados.tipos.length       === 0 || filtrosAplicados.tipos.includes(j.tipo)
-    const matchN = filtrosAplicados.niveles.length     === 0 || filtrosAplicados.niveles.includes(j.nivel)
-    return matchQ && matchC && matchU && matchT && matchN
+    const matchC = filtrosAplicados.categorias.length === 0 || filtrosAplicados.categorias.includes(j.Department?.name)
+    return matchQ && matchC
   })
 
   useEffect(() => { setPagina(1) }, [busqueda, orden])
@@ -362,25 +257,17 @@ export default function TrabajosPage() {
         <h1 className="text-3xl font-bold text-slate-800 sm:text-4xl">Explorar Trabajos</h1>
         <p className="mt-1 text-sm text-slate-400">Encuentra oportunidades según tu perfil e intereses</p>
 
-        <div className="mx-auto mt-6 max-w-lg rounded-2xl border bg-white shadow-sm transition-all duration-300 border-slate-200">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+        <div className="mx-auto mt-6 max-w-lg">
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <Search className={`size-4 shrink-0 transition-colors duration-200 ${inputFocus ? "text-violet-500" : "text-slate-400"}`} />
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               onFocus={() => setInputFocus(true)}
               onBlur={() => setInputFocus(false)}
-              placeholder="Buscar tu trabajo ideal..."
+              placeholder="Buscar por puesto o empresa..."
               className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
             />
-          </div>
-          <SearchDropdown icon={MapPin} placeholder="Ubicación" options={ubicaciones} />
-          <SearchDropdown icon={Layers} placeholder="Categoría" options={categorias}  />
-          <SearchDropdown icon={Clock}  placeholder="Modalidad" options={tiposTrabajo} />
-          <div className="p-3">
-            <button className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white transition-all hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5 active:scale-[0.98]">
-              Buscar
-            </button>
           </div>
         </div>
       </section>
@@ -390,7 +277,7 @@ export default function TrabajosPage() {
 
         {/* Sidebar — solo desktop */}
         <aside className="hidden lg:block lg:w-60 shrink-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <SidebarFiltros filtros={filtros} onToggle={toggleFiltro} onAplicar={aplicarFiltros} />
+          <SidebarFiltros categorias={categorias} filtros={filtros} onToggle={toggleFiltro} onAplicar={aplicarFiltros} />
         </aside>
 
         {/* Contenido principal */}
@@ -488,10 +375,7 @@ export default function TrabajosPage() {
               <h2 className="font-semibold text-slate-800">Filtros</h2>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-2">
-              <FiltroSeccion titulo="Categoría"           opciones={categorias}   seleccionados={filtros.categorias}  onToggle={(v) => toggleFiltro("categorias", v)}  />
-              <FiltroSeccion titulo="Ubicación"           opciones={ubicaciones}  seleccionados={filtros.ubicaciones} onToggle={(v) => toggleFiltro("ubicaciones", v)} />
-              <FiltroSeccion titulo="Tipo de trabajo"     opciones={tiposTrabajo} seleccionados={filtros.tipos}       onToggle={(v) => toggleFiltro("tipos", v)}       />
-              <FiltroSeccion titulo="Nivel de Experiencia" opciones={niveles}     seleccionados={filtros.niveles}     onToggle={(v) => toggleFiltro("niveles", v)}     />
+              <FiltroSeccion titulo="Categoría" opciones={categorias} seleccionados={filtros.categorias} onToggle={(v) => toggleFiltro("categorias", v)} />
             </div>
             <div className="border-t border-slate-100 p-4">
               <button
