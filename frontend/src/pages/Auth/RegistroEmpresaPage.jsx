@@ -186,9 +186,8 @@ const RegistroEmpresaPage = () => {
                             </div>
                         </div>
 
-                        {/* Ley 787 */}
                         <label className="flex items-start gap-2.5 cursor-pointer">
-                            <input type="checkbox" checked={law787} readOnly
+                            <input type="checkbox" checked={law787} onChange={(e) => { setLaw787(e.target.checked); setError(""); }}
                                 className="mt-0.5 w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400 shrink-0 cursor-pointer" />
                             <span className="text-xs text-slate-500 leading-relaxed">
                                 He leído y acepto el tratamiento de datos personales conforme a la{" "}

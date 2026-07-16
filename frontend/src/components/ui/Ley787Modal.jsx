@@ -58,7 +58,7 @@ export default function Ley787Modal({ onAceptar, onCerrar }) {
     if (!el) return
     const check = () => {
       const { scrollTop, scrollHeight, clientHeight } = el
-      if (scrollTop + clientHeight >= scrollHeight - 8) setLlegado(true)
+      if (scrollTop + clientHeight >= scrollHeight - 40) setLlegado(true)
     }
     el.addEventListener("scroll", check, { passive: true })
     check()
