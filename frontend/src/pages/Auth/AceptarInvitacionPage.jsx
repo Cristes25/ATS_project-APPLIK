@@ -4,6 +4,7 @@ import { Loader2, CheckCircle2 } from "lucide-react"
 import Logo from "@/components/ui/Logo"
 import { PasswordToggle } from "@/components/ui/PasswordToggle"
 import { useAuth } from "@/context/AuthContext"
+import { acceptInvitation } from "@/api/auth"
 
 export default function AceptarInvitacionPage() {
   const [searchParams]   = useSearchParams()
@@ -28,20 +29,14 @@ export default function AceptarInvitacionPage() {
     setError("")
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_AUTH_SERVICE_URL}/api/v1/auth/invitations/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          email,
-          password,
-          first_name: firstName,
-          last_name:  lastName,
-          law_787_accepted: ley787,
-        }),
+      const data = await acceptInvitation({
+        token,
+        email,
+        password,
+        first_name: firstName,
+        last_name:  lastName,
+        law_787_accepted: ley787,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message ?? "Error al activar la cuenta")
 
       await login(data.data.token)
       navigate("/dashboard")

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, ArrowLeft } from "lucide-react";
 import Logo from "@/components/ui/Logo";
+import { forgotPassword } from "@/api/auth";
 
 const RecuperarContrasenaPage = () => {
     const [email,    setEmail]    = useState("");
@@ -15,12 +16,7 @@ const RecuperarContrasenaPage = () => {
         setLoading(true);
         setError("");
         try {
-            const res = await fetch(`${import.meta.env.VITE_AUTH_SERVICE_URL}/api/v1/auth/forgot-password`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
-            });
-            if (!res.ok) throw new Error();
+            await forgotPassword(email);
             setEnviado(true);
         } catch {
             setError("No se pudo enviar el correo. Intenta de nuevo.");

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react"
 import { Upload, FileText, X, CheckCircle2, Loader2 } from "lucide-react"
 import Ley787Modal from "@/components/ui/Ley787Modal"
+import { applyPublic } from "@/api/talent"
 
 // pdfjs es pesado y solo se necesita para PDFs — se carga bajo demanda
 async function cargarPdfjs() {
@@ -98,13 +99,7 @@ export default function CvDropzone({ jobToken, onSuccess }) {
     setEnviando(true)
     setError("")
     try {
-      const res = await fetch(`${import.meta.env.VITE_TALENT_SERVICE_URL}/api/v1/talents/public/apply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawCvText: rawText, law787Accepted: true, jobToken }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Error al enviar la postulación")
+      await applyPublic({ rawCvText: rawText, law787Accepted: true, jobToken })
       setExito(true)
       onSuccess?.()
     } catch (err) {

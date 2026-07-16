@@ -1,61 +1,69 @@
-const BASE = `${import.meta.env.VITE_AUTH_SERVICE_URL}/api/v1/auth`
+import { apiFetch } from "./client"
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...options.headers },
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || data.error || "Error del servidor")
-  return data
-}
+const AUTH = `${import.meta.env.VITE_AUTH_SERVICE_URL}/api/v1/auth`
 
-export async function login(email, password) {
-  return request("/login", {
+export const login = (email, password) =>
+  apiFetch(`${AUTH}/login`, {
+    auth: false,
     method: "POST",
     body: JSON.stringify({ email, password }),
   })
-}
 
-export async function registerApplicant({ email, password, first_name, last_name }) {
-  return request("/register", {
+export const registerApplicant = ({ email, password, first_name, last_name }) =>
+  apiFetch(`${AUTH}/register`, {
+    auth: false,
     method: "POST",
     body: JSON.stringify({ email, password, first_name, last_name, law_787_accepted: true }),
   })
-}
 
-export async function registerOrganization({ businessName, RUC, adminEmail, first_name, last_name, password }) {
-  return request("/organizations/register", {
+export const registerOrganization = ({ businessName, RUC, adminEmail, first_name, last_name, password }) =>
+  apiFetch(`${AUTH}/organizations/register`, {
+    auth: false,
     method: "POST",
     body: JSON.stringify({ businessName, RUC, adminEmail, first_name, last_name, password, law_787_accepted: true }),
   })
-}
 
-export async function getMe(token) {
-  return request("/me", {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-}
-
-export async function logoutApi(token) {
-  return request("/logout", {
+export const forgotPassword = (email) =>
+  apiFetch(`${AUTH}/forgot-password`, {
+    auth: false,
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ email }),
   })
-}
 
-export async function updateMe(token, { first_name, last_name }) {
-  return request("/me", {
+export const resetPassword = (token, newPassword) =>
+  apiFetch(`${AUTH}/reset-password`, {
+    auth: false,
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+  })
+
+export const acceptInvitation = ({ token, email, password, first_name, last_name, law_787_accepted }) =>
+  apiFetch(`${AUTH}/invitations/accept`, {
+    auth: false,
+    method: "POST",
+    body: JSON.stringify({ token, email, password, first_name, last_name, law_787_accepted }),
+  })
+
+export const getMe = () =>
+  apiFetch(`${AUTH}/me`)
+
+export const logoutApi = () =>
+  apiFetch(`${AUTH}/logout`, { method: "POST" })
+
+export const updateMe = ({ first_name, last_name }) =>
+  apiFetch(`${AUTH}/me`, {
     method: "PATCH",
-    headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ first_name, last_name }),
   })
-}
 
-export async function changePassword(token, { currentPassword, newPassword }) {
-  return request("/change-password", {
+export const changePassword = ({ currentPassword, newPassword }) =>
+  apiFetch(`${AUTH}/change-password`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ currentPassword, newPassword }),
   })
-}
+
+export const createInvitation = (email) =>
+  apiFetch(`${AUTH}/invitations/create`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  })

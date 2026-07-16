@@ -18,6 +18,13 @@ export const updateApplicationStage = (applicationId, stage) =>
     body: JSON.stringify({ stage }),
   })
 
+export const applyPublic = ({ rawCvText, law787Accepted, jobToken }) =>
+  apiFetch(`${TALENT}/api/v1/talents/public/apply`, {
+    auth: false,
+    method: "POST",
+    body: JSON.stringify({ rawCvText, law787Accepted, jobToken }),
+  })
+
 // Lista de postulaciones del tenant, ya mapeada al shape que usa la UI.
 export async function fetchApplications(tenantId) {
   const data = await apiFetch(`${TALENT}/api/v1/talents/applications?tenant_id=${tenantId}`)
