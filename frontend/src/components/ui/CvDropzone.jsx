@@ -176,7 +176,7 @@ export default function CvDropzone({ jobToken, onSuccess }) {
         <input
           type="checkbox"
           checked={ley787}
-          readOnly
+          onChange={(e) => { setLey787(e.target.checked); setError(""); }}
           className="mt-0.5 rounded border-slate-300 text-violet-600 focus:ring-violet-400"
         />
         <span className="text-xs text-slate-500 leading-relaxed">

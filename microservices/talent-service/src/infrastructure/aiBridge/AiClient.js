@@ -2,9 +2,8 @@ const axios = require('axios');
 
 class AiBridgeClient {
     constructor() {
-        // En producción sería http://ai-service:3000 o la IP respectiva
         this.client = axios.create({
-            baseURL: process.env.AI_SERVICE_URL || 'http://localhost:3000/api/v1',
+            baseURL: process.env.AI_SERVICE_URL || process.env.AI_API_URL || 'http://localhost:3000/api/v1',
             timeout: 30000, // Extendido debido al NLP / LLM latency
         });
     }
