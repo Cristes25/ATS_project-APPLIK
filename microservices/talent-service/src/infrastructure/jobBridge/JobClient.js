@@ -4,7 +4,7 @@ class JobBridgeClient {
     constructor() {
         // En producción HTTP hacia el service interno o la URL externa de balanceador
         this.client = axios.create({
-            baseURL: process.env.JOB_SERVICE_URL || 'http://localhost:3003/api/v1',
+            baseURL: process.env.JOB_SERVICE_URL || process.env.JOB_API_URL || 'http://localhost:3003/api/v1',
             timeout: 5000, 
         });
     }
