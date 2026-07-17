@@ -19,6 +19,8 @@ class JobBridgeClient {
             return response.data;
         } catch (error) {
             console.error('[Job Bridge] Fallo al resolver el Job Token:', error.message);
+            if (error.config) console.error('[Job Bridge] URL Intentada:', error.config.url);
+            if (error.response) console.error('[Job Bridge] Status Response:', error.response.status, error.response.data);
             throw new Error('El token de la vacante es inválido, expirado o inaccesible.');
         }
     }
