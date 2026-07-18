@@ -13,6 +13,7 @@ const Tenant = require('./Tenant');
 const Bookmark = require('./Bookmark');
 const Notification = require('./Notification');
 const EmailLog = require('./EmailLog');
+const Employee = require('./Employee');
 
 // Define Relationships (1-N)
 CandidateProfile.hasMany(WorkExperience, { foreignKey: 'profile_id', as: 'work_experiences' });
@@ -40,6 +41,8 @@ CandidateProfile.belongsTo(Candidate, { foreignKey: 'candidate_id', as: 'candida
 Candidate.hasOne(CandidateProfile, { foreignKey: 'candidate_id', as: 'profile' });
 Job.belongsTo(Department, { foreignKey: 'department_id', as: 'department' });
 Department.hasMany(Job, { foreignKey: 'department_id', as: 'jobs' });
+Job.belongsTo(Employee, { foreignKey: 'created_by', as: 'recruiter' });
+Employee.hasMany(Job, { foreignKey: 'created_by', as: 'jobs' });
 Job.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 Tenant.hasMany(Job, { foreignKey: 'tenant_id', as: 'jobs' });
 Bookmark.belongsTo(Job, { foreignKey: 'job_id', as: 'job' });
@@ -64,5 +67,6 @@ module.exports = {
     Tenant,
     Bookmark,
     Notification,
-    EmailLog
+    EmailLog,
+    Employee
 };

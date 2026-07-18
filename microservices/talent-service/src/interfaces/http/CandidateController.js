@@ -1,6 +1,6 @@
 const ingestCandidate = require('../../core/useCases/IngestCandidate');
 const jobClient = require('../../infrastructure/jobBridge/JobClient');
-const { Application, CandidateProfile, Job, Candidate, WorkExperience, Education, CandidateSkill, Skill, ApplicationStageHistory, sequelize } = require('../../core/domain/models');
+const { Application, CandidateProfile, Job, Candidate, WorkExperience, Education, CandidateSkill, Skill, ApplicationStageHistory, Department, Employee, sequelize } = require('../../core/domain/models');
 
 class CandidateController {
 
@@ -177,7 +177,19 @@ class CandidateController {
                     {
                         model: Job,
                         as: 'job',
-                        attributes: ['title', 'tenant_id']
+                        attributes: ['title', 'tenant_id'],
+                        include: [
+                            {
+                                model: Department,
+                                as: 'department',
+                                attributes: ['name']
+                            },
+                            {
+                                model: Employee,
+                                as: 'recruiter',
+                                attributes: ['first_name', 'last_name']
+                            }
+                        ]
                     },
                     {
                         model: CandidateProfile,
@@ -212,6 +224,11 @@ class CandidateController {
                     ? Math.round(parseFloat(app.match_score) * 100) 
                     : 0;
 
+                const areaName = (app.job && app.job.department) ? app.job.department.name : 'Sin Área';
+                const recruiterName = (app.job && app.job.recruiter) 
+                    ? `${app.job.recruiter.first_name} ${app.job.recruiter.last_name}`
+                    : 'Sin Asignar';
+
                 return {
                     application_id: app.id,
                     'candidate name': candidateName,
@@ -221,7 +238,9 @@ class CandidateController {
                     job_title: app.job ? app.job.title : 'Vacante Desconocida',
                     stage: app.status,
                     match_score: scorePercent,
-                    applied_at: app.applied_at
+                    applied_at: app.applied_at,
+                    area: areaName,
+                    recruiter: recruiterName
                 };
             });
 
