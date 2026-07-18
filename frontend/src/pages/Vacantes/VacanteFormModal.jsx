@@ -79,7 +79,7 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
     setErrorIA("")
     try {
       const data = await generateJobDescription(titulo, urlEmpresa, requisitos)
-      setDescripcion(stripMarkdown(data.data))
+      setDescripcion(stripMarkdown(data.description))
     } catch (err) {
       setErrorIA(err.message ?? "No se pudo generar la descripción. Intenta de nuevo.")
     } finally {
