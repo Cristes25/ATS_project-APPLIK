@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { Search, Clock, ChevronLeft, ChevronRight, Building2 } from "lucide-react"
+import { Search, Clock, ChevronLeft, ChevronRight, Building2, Sparkles } from "lucide-react"
 import { fetchPublicJobs } from "@/api/jobs"
 import { getTenantId } from "@/lib/token"
+import { matchScoreAPorcentaje } from "@/lib/matchScore"
 import { Avatar } from "@/components/ui/Avatar"
 
 import dominusCan    from "@/assets/partners/dominus-can.jpg.jpeg"
@@ -151,6 +152,12 @@ export default function InicioPage() {
                       </div>
                     </div>
                   </div>
+                  {matchScoreAPorcentaje(job.match_score) != null && (
+                    <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1">
+                      <Sparkles className="size-3 shrink-0 text-teal-500" />
+                      <span className="text-xs text-teal-600">{matchScoreAPorcentaje(job.match_score)}% compatible</span>
+                    </div>
+                  )}
                   <button
                     onClick={() => navigate(`/trabajo/${job.public_token}`)}
                     className="w-full rounded-xl bg-violet-600 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5 active:scale-[0.98] mt-auto"
@@ -197,6 +204,12 @@ export default function InicioPage() {
                       </div>
                     </div>
                   </div>
+                  {matchScoreAPorcentaje(job.match_score) != null && (
+                    <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1">
+                      <Sparkles className="size-3 shrink-0 text-teal-500" />
+                      <span className="text-xs text-teal-600">{matchScoreAPorcentaje(job.match_score)}% compatible</span>
+                    </div>
+                  )}
                   <button
                     onClick={() => navigate(`/trabajo/${job.public_token}`)}
                     className="w-full rounded-xl bg-violet-600 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5 active:scale-[0.98]"

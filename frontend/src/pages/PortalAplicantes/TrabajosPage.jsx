@@ -3,10 +3,11 @@ import { createPortal } from "react-dom"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import {
   Search, MapPin, ChevronDown, ChevronLeft, ChevronRight,
-  User, SlidersHorizontal, ArrowLeft, Building2, CheckCircle2,
+  User, SlidersHorizontal, ArrowLeft, Building2, CheckCircle2, Sparkles,
 } from "lucide-react"
 import { fetchPublicJobs } from "@/api/jobs"
 import { getTenantId } from "@/lib/token"
+import { matchScoreAPorcentaje } from "@/lib/matchScore"
 
 const ordenOpciones = ["Más recientes", "Más relevantes", "Mayor salario"]
 
@@ -146,6 +147,8 @@ function SidebarFiltros({ categorias, filtros, onToggle, onAplicar }) {
 function JobCard({ job }) {
   const navigate = useNavigate()
   const destino  = job.public_token ? `/trabajo/${job.public_token}` : `/trabajo/${job.id}`
+  // El backend solo calcula la compatibilidad si el candidato está autenticado.
+  const compatibilidad = matchScoreAPorcentaje(job.match_score)
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-violet-200">
       <div className="flex items-start justify-between gap-4">
@@ -172,6 +175,13 @@ function JobCard({ job }) {
           Ver detalles
         </button>
       </div>
+
+      {compatibilidad != null && (
+        <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1.5">
+          <Sparkles className="size-3.5 shrink-0 text-teal-500" />
+          <span className="text-xs text-teal-600">Compatibilidad: {compatibilidad}%</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -242,8 +252,9 @@ export default function TrabajosPage() {
       const sb = parseFloat(b.salary_max ?? b.salario ?? 0)
       return sb - sa
     }
-    // Más relevantes: por id descendente (proxy de match score hasta tener vector)
-    return b.id - a.id
+    // Más relevantes: por compatibilidad con el perfil del candidato.
+    // Sin sesión el backend no la calcula, así que se cae al orden por id.
+    return (b.match_score ?? 0) - (a.match_score ?? 0) || b.id - a.id
   })
 
   const totalPaginas = Math.max(1, Math.ceil(ordenados.length / POR_PAGINA))
