@@ -9,18 +9,18 @@ const jobService = require ('../services/jobService')
  */
 
 const generateJobDescription = asyncHandler (async (req,res)=>{
-    const {jobTitle, companyUrl} = req.body 
+    const {jobTitle, companyUrl, requirements} = req.body 
     if (!jobTitle||!companyUrl) {
         res.status(400)
         throw new Error ("JobTitle y companyURL son necesarios en el cuerpo de la solicitud")
-
     }
     //1. Obtener la cultura de la empresa desde la URL
     const cultureText = await jobService.scrapeCompanyCulture(companyUrl)
-    //2. Generar descripcion de trabajo basado en la cultura obtenida 
-    const jobDescription = await jobService.generateDescription(jobTitle, companyUrl)
+    //2. Generar descripcion de trabajo basado en la cultura obtenida y los requisitos
+    const jobDescription = await jobService.generateDescription(jobTitle, cultureText, requirements)
     res.status(201).json({
-        message: " Descripcion de puesto generada correctamente "
+        message: " Descripcion de puesto generada correctamente ",
+        description: jobDescription
     })
 })
 

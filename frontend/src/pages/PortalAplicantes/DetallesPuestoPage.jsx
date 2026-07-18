@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   ArrowLeft, Clock, MapPin, Bookmark, Share2, Sparkles,
@@ -62,7 +62,7 @@ const fallback = {
 
 // ─── Sidebar cards ────────────────────────────────────────────────────────────
 
-function SidebarContent({ trabajo, aplicado, onAplicar }) {
+function SidebarContent({ trabajo }) {
   const matchColor = (trabajo.match ?? 0) >= 80 ? "text-teal-500" : "text-blue-500"
 
   return (
@@ -130,6 +130,10 @@ export default function DetallesPuestoPage() {
   const [guardado,  setGuardado]  = useState(false)
   const [copiado,   setCopiado]   = useState(false)
   const [aplicado,  setAplicado]  = useState(false)
+  const cvRef = useRef(null)
+
+  // "Aplicar" lleva al formulario de CV: la postulación solo se registra al enviarlo.
+  const irAFormularioCv = () => cvRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
 
   useEffect(() => {
     if (UUID_RE.test(id)) {
@@ -243,10 +247,25 @@ export default function DetallesPuestoPage() {
               >
                 <Share2 className="size-4" />
               </button>
+              {jobToken && (
+                <button
+                  onClick={irAFormularioCv}
+                  disabled={aplicado}
+                  className={`hidden sm:block rounded-xl px-5 py-2 text-sm font-semibold transition-all active:scale-[0.98] ${
+                    aplicado
+                      ? "bg-teal-50 text-teal-600 cursor-default"
+                      : "bg-violet-600 text-white hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5"
+                  }`}
+                >
+                  {aplicado ? "✓ Aplicado" : "Aplicar"}
+                </button>
+              )}
+            </div>
+            {jobToken && (
               <button
-                onClick={() => setAplicado(true)}
+                onClick={irAFormularioCv}
                 disabled={aplicado}
-                className={`hidden sm:block rounded-xl px-5 py-2 text-sm font-semibold transition-all active:scale-[0.98] ${
+                className={`sm:hidden w-full rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${
                   aplicado
                     ? "bg-teal-50 text-teal-600 cursor-default"
                     : "bg-violet-600 text-white hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5"
@@ -254,18 +273,7 @@ export default function DetallesPuestoPage() {
               >
                 {aplicado ? "✓ Aplicado" : "Aplicar"}
               </button>
-            </div>
-            <button
-              onClick={() => setAplicado(true)}
-              disabled={aplicado}
-              className={`sm:hidden w-full rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${
-                aplicado
-                  ? "bg-teal-50 text-teal-600 cursor-default"
-                  : "bg-violet-600 text-white hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5"
-              }`}
-            >
-              {aplicado ? "✓ Aplicado" : "Aplicar"}
-            </button>
+            )}
           </div>
         </div>
       </div>
@@ -318,7 +326,7 @@ export default function DetallesPuestoPage() {
           </section>
 
           {/* ── CV Upload ── */}
-          {jobToken && <section>
+          {jobToken && <section ref={cvRef}>
             <h2 className="mb-3 text-base font-bold text-slate-800">Aplicar a esta posición</h2>
             <div className="rounded-xl border border-slate-200 bg-white p-5">
               <CvDropzone
@@ -330,13 +338,13 @@ export default function DetallesPuestoPage() {
 
           {/* Sidebar en mobile — debajo del contenido */}
           <div className="lg:hidden space-y-4">
-            <SidebarContent trabajo={dataTrabajo} aplicado={aplicado} onAplicar={() => {}} />
+            <SidebarContent trabajo={dataTrabajo} />
           </div>
         </div>
 
         {/* ── Sidebar derecha — solo desktop ── */}
         <aside className="hidden lg:flex flex-col gap-4 w-72 shrink-0">
-          <SidebarContent trabajo={dataTrabajo} aplicado={aplicado} onAplicar={() => {}} />
+          <SidebarContent trabajo={dataTrabajo} />
         </aside>
 
       </div>
