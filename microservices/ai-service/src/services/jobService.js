@@ -31,12 +31,13 @@ const scrapeCompanyCulture = async (url) => {
 };
 
 /**
- * Genera una descripción de trabajo usando IA, alineada con la cultura de la empresa.
+ * Genera una descripción de trabajo usando IA, alineada con la cultura de la empresa y requisitos predefinidos.
  * @param {string} jobTitle El título del trabajo (por ejemplo, "Ingeniero de Software Senior").
  * @param {string} companyCultureText El texto extraído que representa la cultura de la empresa.
+ * @param {string} requirements Los requisitos y responsabilidades definidos por el reclutador.
  * @returns {Promise<string>} El texto de la descripción del trabajo generado.
  */
-const generateDescription = async (jobTitle, companyCultureText) => {
+const generateDescription = async (jobTitle, companyCultureText, requirements) => {
     const prompt = `
         Eres un experto en recursos humanos. Tu tarea es generar ÚNICAMENTE el texto de una descripción de trabajo profesional.
 
@@ -47,16 +48,18 @@ const generateDescription = async (jobTitle, companyCultureText) => {
 
         Puesto: "${jobTitle}"
 
+        **Requisitos y Responsabilidades (¡BASA EL PUESTO ESTRICTAMENTE EN ESTOS!):**
+        "${requirements || 'No especificado, infiere según el puesto.'}"
+
         **Cultura y valores de la empresa (úsalos para alinear el tono y los valores del puesto):**
         "${companyCultureText}"
 
         **Estructura requerida:**
         1. Título atractivo del puesto y tagline de la empresa.
         2. Sobre la empresa (máx. 2 párrafos, basado en la cultura extraída).
-        3. Responsabilidades clave (lista de viñetas).
-        4. Cualificaciones requeridas — Hard Skills (lista de viñetas).
-        5. Lo que te hará destacar — Soft Skills alineadas con la cultura (lista de viñetas).
-        6. Párrafo final de cierre que invite a postularse.
+        3. Sobre el rol y responsabilidades (basado EXCLUSIVAMENTE en los requisitos provistos).
+        4. Requisitos para el puesto (basado EXCLUSIVAMENTE en los requisitos provistos, no inventes calificaciones adicionales ni separes en soft/hard skills si no viene indicado).
+        5. Párrafo final de cierre que invite a postularse.
 
         IMPORTANTE: Empieza directamente con el título del puesto. Sin introducciones.
     `;
