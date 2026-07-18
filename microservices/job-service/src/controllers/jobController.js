@@ -5,7 +5,7 @@ const { Job, Department, sequelize } = require('../models');
 
 // POST /jobs
 exports.createJob = async (request, reply) => {
-  const { title, description, requirements, salary_min, salary_max, currency, department_id, closes_at } = request.body;
+  const { title, description, requirements, location, contract_type, experience_level, salary_min, salary_max, currency, department_id, closes_at } = request.body;
   const tenant_id = request.user.company_id;
   const created_by = request.user.user_id;
 
@@ -21,6 +21,9 @@ exports.createJob = async (request, reply) => {
       title,
       description,
       requirements,
+      location,
+      contract_type,
+      experience_level,
       salary_min,
       salary_max,
       currency,
@@ -80,7 +83,7 @@ exports.getJobById = async (request, reply) => {
 exports.updateJob = async (request, reply) => {
   const { id } = request.params;
   const tenant_id = request.user.company_id;
-  const { title, description, requirements, salary_min, salary_max, currency, department_id, closes_at, status } = request.body;
+  const { title, description, requirements, location, contract_type, experience_level, salary_min, salary_max, currency, department_id, closes_at, status } = request.body;
 
   const effectiveMin = salary_min ?? undefined;
   const effectiveMax = salary_max ?? undefined;
@@ -92,7 +95,7 @@ exports.updateJob = async (request, reply) => {
     const job = await Job.findOne({ where: { id, tenant_id } });
     if (!job) return reply.code(404).send({ error: 'Vacante no encontrada.' });
 
-    await job.update({ title, description, requirements, salary_min, salary_max, currency, department_id, closes_at, status });
+    await job.update({ title, description, requirements, location, contract_type, experience_level, salary_min, salary_max, currency, department_id, closes_at, status });
     return reply.send(job);
   } catch (error) {
     request.log.error(error);
@@ -131,7 +134,7 @@ exports.getJobByToken = async (request, reply) => {
     const job = await Job.findOne({
       where: { public_token: token, status: 'published' },
       include: [{ model: Department, attributes: ['name'] }],
-      attributes: ['id', 'title', 'description', 'requirements', 'salary_min', 'salary_max', 'currency', 'closes_at', 'createdAt'],
+      attributes: ['id', 'title', 'description', 'requirements', 'location', 'contract_type', 'experience_level', 'salary_min', 'salary_max', 'currency', 'closes_at', 'createdAt'],
     });
     if (!job) return reply.code(404).send({ error: 'Vacante no encontrada o no disponible.' });
     return reply.send(job);
@@ -186,7 +189,7 @@ exports.getPublicJobs = async (request, reply) => {
     const jobs = await Job.findAll({
       where: { tenant_id, status: 'published' },
       include: [{ model: Department, attributes: ['name'] }],
-      attributes: ['id', 'public_token', 'title', 'description', 'requirements', 'salary_min', 'salary_max', 'currency', 'closes_at', 'createdAt'],
+      attributes: ['id', 'public_token', 'title', 'description', 'requirements', 'location', 'contract_type', 'experience_level', 'salary_min', 'salary_max', 'currency', 'closes_at', 'createdAt'],
     });
 
     let mappedJobs = jobs.map(job => {
