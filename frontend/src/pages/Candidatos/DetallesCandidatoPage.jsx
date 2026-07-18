@@ -1,47 +1,75 @@
-import { useState } from "react"
-import { ArrowLeft, Download, CheckCircle2, Clock, Circle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ArrowLeft, Download, CheckCircle2, Clock, Circle, Loader2 } from "lucide-react"
 import { Avatar } from "@/components/ui/Avatar"
-import { StageBadge } from "@/components/ui/StageBadge"
+import { StageBadge, STAGES } from "@/components/ui/StageBadge"
 import { Button } from "@/components/ui/button"
-import { STAGES } from "@/components/ui/StageBadge"
 import { matchScoreAPorcentaje } from "@/lib/matchScore"
+import { fetchApplicationDetails, fetchApplicationHistory } from "@/api/talent"
 
-// Genera historial mock realista hasta la etapa actual
-function generarHistorial(etapaActual) {
-  const hoy = new Date(2026, 3, 20) // 20 Abr 2026
-  const offsetDias = [0, 3, 5, 9, 14, 19]
-  const idxActual = STAGES.indexOf(etapaActual)
-  return STAGES.slice(0, idxActual + 1).map((etapa, i) => {
-    const fecha = new Date(hoy)
-    fecha.setDate(hoy.getDate() - (offsetDias[idxActual] - offsetDias[i]))
-    const diasEnEtapa = i < idxActual ? offsetDias[i + 1] - offsetDias[i] : null
-    return {
-      etapa,
-      fecha: fecha.toLocaleDateString("es-NI", { day: "numeric", month: "short", year: "numeric" }),
-      diasEnEtapa,
-    }
-  })
+const formatearFecha = (fecha) =>
+  new Date(fecha).toLocaleDateString("es-NI", { day: "numeric", month: "short", year: "numeric" })
+
+// El CV solo es descargable si el backend guardó una URL absoluta (S3).
+const esDescargable = (url) => Boolean(url) && /^https?:\/\//.test(url)
+
+function Seccion({ titulo, children }) {
+  return (
+    <div className="rounded-2xl bg-white p-6 shadow-sm">
+      <h2 className="mb-4 font-semibold text-slate-800">{titulo}</h2>
+      {children}
+    </div>
+  )
+}
+
+function SinDatos({ children }) {
+  return <p className="text-sm text-slate-400">{children}</p>
 }
 
 export default function DetallesCandidatoPage({ candidato, onBack, onActualizarEtapa, onDescartar }) {
-  const [notas,    setNotas]    = useState("")
-  const [guardado, setGuardado] = useState(false)
+  const [detalle,   setDetalle]   = useState(null)
+  const [historial, setHistorial] = useState([])
+  const [cargando,  setCargando]  = useState(true)
+  const [error,     setError]     = useState("")
+
+  const applicationId = candidato?.application_id
+
+  useEffect(() => {
+    if (!applicationId) { setCargando(false); return }
+    let vigente = true
+    setCargando(true)
+    setError("")
+
+    Promise.all([
+      fetchApplicationDetails(applicationId),
+      // El historial es complementario: si falla, la ficha igual se muestra.
+      fetchApplicationHistory(applicationId).catch(() => []),
+    ])
+      .then(([datos, etapas]) => {
+        if (!vigente) return
+        setDetalle(datos)
+        setHistorial(etapas)
+      })
+      .catch((err) => {
+        if (vigente) setError(err.message ?? "No se pudo cargar el perfil del candidato")
+      })
+      .finally(() => { if (vigente) setCargando(false) })
+
+    return () => { vigente = false }
+  }, [applicationId])
 
   if (!candidato) return null
-  const historial = generarHistorial(candidato.etapa)
-  const scorePct = matchScoreAPorcentaje(candidato.score)
 
-  const handleGuardarNotas = () => {
-    if (!notas.trim()) return
-    setGuardado(true)
-    setTimeout(() => setGuardado(false), 2500)
-  }
+  // Mientras carga el detalle se usan los datos que ya trae la lista.
+  const nombre   = detalle?.nombre ?? candidato.nombre
+  const email    = detalle?.email  ?? candidato.email
+  const etapa    = detalle?.etapa  ?? candidato.etapa
+  const scorePct = matchScoreAPorcentaje(detalle?.score ?? candidato.score)
+  const fechaPorEtapa = Object.fromEntries(historial.map((h) => [h.etapa, h.fecha]))
 
   return (
     <div className="min-h-screen bg-applik-bg p-6">
       <div className="mx-auto max-w-5xl space-y-6">
 
-        {/* Back */}
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
@@ -53,11 +81,11 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Avatar name={candidato.nombre} size="lg" />
+              <Avatar name={nombre} size="lg" />
               <div>
-                <h1 className="text-xl font-bold text-slate-800">{candidato.nombre}</h1>
-                <p className="text-sm text-slate-500">{candidato.posicion}</p>
-                <p className="text-xs text-slate-400">{candidato.email}</p>
+                <h1 className="text-xl font-bold text-slate-800">{nombre}</h1>
+                <p className="text-sm text-slate-500">{detalle?.headline ?? candidato.posicion}</p>
+                <p className="text-xs text-slate-400">{email}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:shrink-0">
@@ -84,150 +112,152 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
                 style={{ width: `${scorePct ?? 0}%` }}
               />
             </div>
-            <StageBadge stage={candidato.etapa} />
+            <StageBadge stage={etapa} />
           </div>
         </div>
 
-        {/* Main content */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {error && (
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+        )}
 
-          {/* Left — Experiencia + Educación + Notas */}
-          <div className="space-y-6 lg:col-span-2">
+        {cargando ? (
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-white py-20 shadow-sm">
+            <Loader2 className="size-5 animate-spin text-violet-500" />
+            <p className="text-sm text-slate-400">Cargando perfil del candidato...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="mb-4 font-semibold text-slate-800">Experiencia Laboral</h2>
-              <div className="space-y-4">
-                {[
-                  { puesto: "Gerente de Ventas Senior",  empresa: "Empresa ABC",  periodo: "2022 – Presente" },
-                  { puesto: "Ejecutivo de Ventas",       empresa: "Empresa XYZ",  periodo: "2019 – 2022"    },
-                ].map((exp, i) => (
-                  <div key={i} className="border-b border-slate-50 pb-4 last:border-0 last:pb-0">
-                    <p className="font-medium text-slate-800">{exp.puesto}</p>
-                    <p className="text-sm text-slate-500">{exp.empresa}</p>
-                    <p className="text-xs text-slate-400">{exp.periodo}</p>
+            {/* Izquierda — Experiencia + Educación */}
+            <div className="space-y-6 lg:col-span-2">
+
+              <Seccion titulo="Experiencia Laboral">
+                {detalle?.experiencias?.length > 0 ? (
+                  <div className="space-y-4">
+                    {detalle.experiencias.map((exp) => (
+                      <div key={exp.id} className="border-b border-slate-50 pb-4 last:border-0 last:pb-0">
+                        <p className="font-medium text-slate-800">{exp.puesto}</p>
+                        <p className="text-sm text-slate-500">{exp.empresa}</p>
+                        <p className="text-xs text-slate-400">{exp.periodo}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="mb-4 font-semibold text-slate-800">Educación</h2>
-              <div>
-                <p className="font-medium text-slate-800">Licenciatura en Administración de Empresas</p>
-                <p className="text-sm text-slate-500">Universidad Nacional</p>
-                <p className="text-xs text-slate-400">2015 – 2019</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="mb-3 font-semibold text-slate-800">Notas</h2>
-              <textarea
-                value={notas}
-                onChange={(e) => { setNotas(e.target.value); setGuardado(false) }}
-                placeholder="Agrega notas sobre este candidato..."
-                rows={3}
-                className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-dark focus:outline-none focus:ring-2 focus:ring-blue-dark/20"
-              />
-              <div className="mt-3 flex items-center justify-end gap-3">
-                {guardado && (
-                  <p className="text-sm text-teal-dark font-medium">✓ Nota guardada</p>
+                ) : (
+                  <SinDatos>La IA no extrajo experiencia laboral de este CV.</SinDatos>
                 )}
-                <Button variant="primary" size="sm" onClick={handleGuardarNotas} disabled={!notas.trim()}>
-                  Guardar nota
-                </Button>
-              </div>
+              </Seccion>
+
+              <Seccion titulo="Educación">
+                {detalle?.educaciones?.length > 0 ? (
+                  <div className="space-y-4">
+                    {detalle.educaciones.map((edu) => (
+                      <div key={edu.id} className="border-b border-slate-50 pb-4 last:border-0 last:pb-0">
+                        <p className="font-medium text-slate-800">{edu.titulo}</p>
+                        <p className="text-sm text-slate-500">{edu.institucion}</p>
+                        <p className="text-xs text-slate-400">{edu.periodo}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <SinDatos>La IA no extrajo estudios de este CV.</SinDatos>
+                )}
+              </Seccion>
+
             </div>
 
-          </div>
+            {/* Derecha — Info + Habilidades + Historial + CV */}
+            <div className="space-y-6">
 
-          {/* Right — Info + Habilidades + CV */}
-          <div className="space-y-6">
-
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="mb-3 font-semibold text-slate-800">Información</h2>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Ciudad</span>
-                  <span className="text-slate-700">{candidato.ciudad}</span>
+              <Seccion titulo="Información">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Ciudad</span>
+                    <span className="text-slate-700">{detalle?.ciudad || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Email</span>
+                    <span className="text-slate-700 truncate ml-2">{email || "—"}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Email</span>
-                  <span className="text-slate-700 truncate ml-2">{candidato.email}</span>
-                </div>
-              </div>
-            </div>
+              </Seccion>
 
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="mb-3 font-semibold text-slate-800">Habilidades</h2>
-              <div className="flex flex-wrap gap-2">
-                {["Ventas B2B", "CRM", "Liderazgo", "Negociación", "Excel"].map((skill) => (
-                  <span key={skill} className="rounded-full bg-blue-dark/10 px-3 py-1 text-xs text-blue-dark">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
+              <Seccion titulo="Habilidades">
+                {detalle?.habilidades?.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {detalle.habilidades.map((skill) => (
+                      <span key={skill.id} className="rounded-full bg-blue-dark/10 px-3 py-1 text-xs text-blue-dark">
+                        {skill.nombre}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <SinDatos>La IA no extrajo habilidades de este CV.</SinDatos>
+                )}
+              </Seccion>
 
-            {/* Timeline de etapas */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="mb-4 font-semibold text-slate-800">Historial de Proceso</h2>
-              <div className="relative">
-                {STAGES.map((etapa, i) => {
-                  const entrada = historial.find((h) => h.etapa === etapa)
-                  const esActual = etapa === candidato.etapa
-                  const completada = !!entrada && !esActual
-                  const pendiente = !entrada
+              {/* Timeline con el historial real de etapas */}
+              <Seccion titulo="Historial de Proceso">
+                <div className="relative">
+                  {STAGES.map((nombreEtapa, i) => {
+                    const fecha      = fechaPorEtapa[nombreEtapa]
+                    const esActual   = nombreEtapa === etapa
+                    const completada = Boolean(fecha) && !esActual
+                    const pendiente  = !fecha && !esActual
 
-                  return (
-                    <div key={etapa} className="flex gap-3">
-                      {/* Línea + icono */}
-                      <div className="flex flex-col items-center">
-                        <div className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
-                          esActual   ? "border-violet-500 bg-violet-500"
-                          : completada ? "border-teal-500 bg-teal-500"
-                          : "border-slate-200 bg-white"
-                        }`}>
-                          {esActual    && <div className="size-2 rounded-full bg-white" />}
-                          {completada  && <CheckCircle2 className="size-3.5 text-white" />}
-                          {pendiente   && <Circle className="size-3 text-slate-300" />}
+                    return (
+                      <div key={nombreEtapa} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                            esActual   ? "border-violet-500 bg-violet-500"
+                            : completada ? "border-teal-500 bg-teal-500"
+                            : "border-slate-200 bg-white"
+                          }`}>
+                            {esActual   && <div className="size-2 rounded-full bg-white" />}
+                            {completada && <CheckCircle2 className="size-3.5 text-white" />}
+                            {pendiente  && <Circle className="size-3 text-slate-300" />}
+                          </div>
+                          {i < STAGES.length - 1 && (
+                            <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${completada ? "bg-teal-200" : "bg-slate-100"}`} />
+                          )}
                         </div>
-                        {i < STAGES.length - 1 && (
-                          <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${completada ? "bg-teal-200" : "bg-slate-100"}`} />
-                        )}
-                      </div>
 
-                      {/* Contenido */}
-                      <div className="pb-4 flex-1 min-w-0">
-                        <p className={`text-sm font-medium leading-tight ${
-                          esActual ? "text-violet-700" : completada ? "text-slate-700" : "text-slate-300"
-                        }`}>
-                          {etapa}
-                          {esActual && <span className="ml-2 text-xs font-normal text-violet-400">actual</span>}
-                        </p>
-                        {entrada && (
-                          <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                            <Clock className="size-3" /> {entrada.fecha}
+                        <div className="pb-4 flex-1 min-w-0">
+                          <p className={`text-sm font-medium leading-tight ${
+                            esActual ? "text-violet-700" : completada ? "text-slate-700" : "text-slate-300"
+                          }`}>
+                            {nombreEtapa}
+                            {esActual && <span className="ml-2 text-xs font-normal text-violet-400">actual</span>}
                           </p>
-                        )}
-                        {entrada?.diasEnEtapa && (
-                          <p className="text-xs text-amber-500 mt-0.5">{entrada.diasEnEtapa} días en esta etapa</p>
-                        )}
+                          {fecha && (
+                            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                              <Clock className="size-3" /> {formatearFecha(fecha)}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+                    )
+                  })}
+                </div>
+              </Seccion>
 
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="mb-3 font-semibold text-slate-800">CV</h2>
-              <Button variant="outline" size="md" className="w-full">
-                <Download className="size-4" /> Descargar CV
-              </Button>
-            </div>
+              <Seccion titulo="CV">
+                {esDescargable(detalle?.cvUrl) ? (
+                  <a
+                    href={detalle.cvUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    <Download className="size-4" /> Descargar CV
+                  </a>
+                ) : (
+                  <SinDatos>El archivo original no está disponible. El contenido del CV ya fue procesado por la IA.</SinDatos>
+                )}
+              </Seccion>
 
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
