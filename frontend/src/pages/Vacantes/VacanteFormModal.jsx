@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Input, Textarea } from "@/components/ui/Input"
 import { Button } from "@/components/ui/button"
+import { Modal } from "@/components/ui/Modal"
 import { cn } from "@/lib/utils"
 import { Sparkles, Loader2 } from "lucide-react"
 import { fetchDepartments, createDepartment, createJob, updateJob } from "@/api/jobs"
@@ -31,6 +32,7 @@ const rubrosLaborales = [
 ]
 
 function stripMarkdown(text) {
+  if (!text) return ""
   return text
     .replace(/#{1,6}\s+/gm, '')
     .replace(/\*\*(.+?)\*\*/g, '$1')
@@ -68,18 +70,16 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
   }, [])
 
   const handleGenerarIA = async () => {
-    if (!titulo.trim()) {
-      setMostrarUrlIA(true)
-      return
-    }
+    // La IA redacta a partir de los requisitos: se exigen antes de generar.
+    if (!titulo.trim() || !requisitos.trim()) return
     setMostrarUrlIA(true)
     if (!urlEmpresa.trim()) return
 
     setGenerandoIA(true)
     setErrorIA("")
     try {
-      const data = await generateJobDescription(titulo, urlEmpresa)
-      setDescripcion(stripMarkdown(data.data))
+      const data = await generateJobDescription(titulo, urlEmpresa, requisitos)
+      setDescripcion(stripMarkdown(data.description))
     } catch (err) {
       setErrorIA(err.message ?? "No se pudo generar la descripción. Intenta de nuevo.")
     } finally {
@@ -134,8 +134,7 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-8 shadow-xl">
+    <Modal size="lg" onClose={onClose} className="max-h-[90vh] overflow-y-auto p-8">
 
         {/* Header */}
         <div className="mb-6 border-b border-slate-100 pb-4">
@@ -203,22 +202,41 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
             </select>
           </div>
 
-          {/* Descripción con botón IA */}
+          {/* Paso 1 — Requisitos: la fuente de verdad que la IA usará para redactar */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Requisitos y responsabilidades</label>
+            <p className="text-xs text-slate-400">
+              Escribí los requisitos y responsabilidades reales del puesto. La IA los usará para redactar la descripción.
+            </p>
+            <Textarea
+              required
+              placeholder={"Ej:\n- 2+ años con React y Node.js\n- Experiencia con bases de datos SQL\n- Nivel de inglés intermedio\n- Trabajo en equipo y comunicación efectiva"}
+              value={requisitos}
+              onChange={(e) => setRequisitos(e.target.value)}
+              rows={5}
+            />
+          </div>
+
+          {/* Paso 2 — Descripción: la IA la redacta a partir de los requisitos de arriba */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-slate-700">Descripción del Puesto</label>
               <button
                 type="button"
                 onClick={handleGenerarIA}
-                disabled={generandoIA}
-                className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-600 transition-all hover:bg-violet-100 hover:border-violet-300 disabled:opacity-50"
+                disabled={generandoIA || !titulo.trim() || !requisitos.trim()}
+                title={!requisitos.trim() ? "Completá los requisitos primero" : undefined}
+                className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-600 transition-all hover:bg-violet-100 hover:border-violet-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generandoIA
-                  ? <><Loader2 className="size-3 animate-spin" /> Generando...</>
-                  : <><Sparkles className="size-3" /> Generar con IA</>
+                  ? <><Loader2 className="size-3 animate-spin" /> Redactando...</>
+                  : <><Sparkles className="size-3" /> Redactar con IA</>
                 }
               </button>
             </div>
+            <p className="text-xs text-slate-400">
+              A partir del título y los requisitos que escribiste, la IA redacta una descripción profesional. Podés editarla.
+            </p>
 
             {mostrarUrlIA && (
               <div className="flex gap-2">
@@ -242,21 +260,12 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
             {errorIA && <p className="text-xs text-red-500">{errorIA}</p>}
 
             <Textarea
-              placeholder="Describe las responsabilidades y objetivos del puesto..."
+              placeholder="La descripción generada por la IA aparecerá acá. Podés editarla libremente."
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               rows={8}
             />
           </div>
-
-          <Textarea
-            label="Requisitos"
-            required
-            placeholder={"Ej:\n- 2+ años con React y Node.js\n- Experiencia con bases de datos SQL\n- Nivel de inglés intermedio\n- Trabajo en equipo y comunicación efectiva"}
-            value={requisitos}
-            onChange={(e) => setRequisitos(e.target.value)}
-            rows={5}
-          />
 
           {/* Rango Salarial */}
           <div className="flex flex-col gap-1.5">
@@ -298,7 +307,6 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
           </div>
 
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

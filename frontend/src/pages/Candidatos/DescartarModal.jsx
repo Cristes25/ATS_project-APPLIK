@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Modal } from "@/components/ui/Modal"
 
 const sugerencias = [
   "Muchas gracias por tu tiempo y participación",
@@ -7,12 +8,11 @@ const sugerencias = [
   "Te deseamos éxito en tu búsqueda laboral",
 ]
 
-export default function DescartarModal({ candidato, onClose, onConfirm }) {
+export default function DescartarModal({ onClose, onConfirm }) {
   const [mensaje, setMensaje] = useState("")
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+    <Modal size="sm" onClose={onClose} className="p-6">
 
         <h2 className="mb-4 text-lg font-bold text-slate-800">Descartar</h2>
 
@@ -45,7 +45,6 @@ export default function DescartarModal({ candidato, onClose, onConfirm }) {
           <Button variant="destructive" onClick={() => onConfirm(mensaje)}>Descartar</Button>
         </div>
 
-      </div>
-    </div>
+    </Modal>
   )
 }

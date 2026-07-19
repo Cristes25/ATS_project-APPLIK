@@ -27,10 +27,11 @@ services:
     build:
       context: ./microservices/ai-service
     container_name: applik_ai
-    env_file: 
+    env_file:
       - ./microservices/ai-service/.env
     environment:
       - PORT=3000
+      - JWT_SECRET=applik_super_secret_jwt_key_2026
     ports:
       - "3000:3000"
     networks:

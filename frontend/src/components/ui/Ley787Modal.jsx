@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react"
 import { X, ScrollText } from "lucide-react"
+import { Modal } from "@/components/ui/Modal"
 
 const ARTICULOS = [
   {
@@ -66,8 +67,14 @@ export default function Ley787Modal({ onAceptar, onCerrar }) {
   }, [])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl flex flex-col max-h-[90vh]">
+    <Modal
+      size="lg"
+      onClose={onCerrar}
+      overlayClassName="backdrop-blur-sm"
+      className="relative shadow-2xl flex flex-col max-h-[90vh]"
+      closeOnBackdrop={false}
+      closeOnEsc={false}
+    >
 
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 shrink-0">
@@ -118,7 +125,6 @@ export default function Ley787Modal({ onAceptar, onCerrar }) {
           </button>
         </div>
 
-      </div>
-    </div>
+    </Modal>
   )
 }

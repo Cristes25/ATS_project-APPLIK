@@ -2,6 +2,7 @@ import { useState } from "react"
 import { ArrowLeft, CheckCircle2, Clock, Sparkles, AlertTriangle, Info } from "lucide-react"
 import { Avatar } from "@/components/ui/Avatar"
 import { Button } from "@/components/ui/button"
+import { Modal } from "@/components/ui/Modal"
 import { STAGES } from "@/components/ui/StageBadge"
 
 const stageDescriptions = {
@@ -75,8 +76,7 @@ export default function ActualizarEtapaModal({ candidato, onClose, onConfirm }) 
   const [etapaSeleccionada, setEtapa] = useState(candidato.etapa)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-xl overflow-hidden">
+    <Modal size="3xl" onClose={onClose} className="overflow-hidden">
 
         {/* Header */}
         <div className="px-6 pt-5 pb-4 border-b border-slate-100">
@@ -206,7 +206,6 @@ export default function ActualizarEtapaModal({ candidato, onClose, onConfirm }) 
           </Button>
         </div>
 
-      </div>
-    </div>
+    </Modal>
   )
 }

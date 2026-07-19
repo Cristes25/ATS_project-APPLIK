@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { ArrowLeft, Tag, Pencil, Globe, Link, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { updateJob } from "@/api/jobs"
 
 function diasDesde(fecha) {
   const diff = Date.now() - new Date(fecha).getTime()
@@ -11,7 +12,6 @@ export default function DetallesVacantePage({ vacante, onBack, onEdit, onStatusC
   const [publicando,     setPublicando]     = useState(false)
   const [copiado,        setCopiado]        = useState(false)
   const [errorPublicar,  setErrorPublicar]  = useState("")
-  const token = localStorage.getItem("applik_token")
 
   if (!vacante) return null
 
@@ -24,20 +24,14 @@ export default function DetallesVacantePage({ vacante, onBack, onEdit, onStatusC
     setPublicando(true)
     setErrorPublicar("")
     try {
-      const res = await fetch(`${import.meta.env.VITE_JOB_SERVICE_URL}/api/v1/jobs/${vacante.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: "published" }),
-      })
-      if (res.ok) {
-        onStatusChange?.()
-      } else if (res.status === 401) {
+      await updateJob(vacante.id, { status: "published" })
+      onStatusChange?.()
+    } catch (err) {
+      if (err.status === 401) {
         setErrorPublicar("Sesión expirada — cierra sesión y vuelve a entrar.")
       } else {
         setErrorPublicar("No se pudo publicar. Intenta de nuevo.")
       }
-    } catch {
-      setErrorPublicar("Error de red. Verifica tu conexión.")
     } finally {
       setPublicando(false)
     }

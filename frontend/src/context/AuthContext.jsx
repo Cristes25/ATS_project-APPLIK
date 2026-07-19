@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem("applik_token")
     if (!token) { setLoading(false); return }
 
-    getMe(token)
+    getMe()
       .then(({ data }) => {
         const role = parseRole(token)
         const companyId = parseCompanyId(token)
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
       return
     }
     localStorage.setItem("applik_token", tokenOrUser)
-    const { data } = await getMe(tokenOrUser)
+    const { data } = await getMe()
     const role = parseRole(tokenOrUser)
     const companyId = parseCompanyId(tokenOrUser)
     if (companyId) localStorage.setItem("applik_tenant_id", companyId)
@@ -46,13 +46,17 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     const token = localStorage.getItem("applik_token")
-    if (token) logoutApi(token).catch(() => {})
+    if (token) logoutApi().catch(() => {})
     localStorage.removeItem("applik_token")
     setUser(null)
   }
 
+  const updateUser = (datosNuevos) => {
+    setUser((prev) => prev ? { ...prev, ...datosNuevos } : prev)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, updateUser }}>
       {children}
     </AuthContext.Provider>
   )
