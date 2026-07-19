@@ -10,54 +10,6 @@ import { fetchPublicJobById } from "@/api/jobs"
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const trabajos = {
-  1: {
-    id: 1, titulo: "Gerente de Ventas", empresa: "Casa Peñas", ubicacion: "Managua",
-    categoria: "Marketing", tipo: "Full Time", experiencia: "3 años", fechaLimite: "15 de mayo, 2026",
-    publicado: "hace 2 días", salario: "$1,200 - $1,600 mensuales",
-    descripcion: "Buscamos un Gerente de Ventas apasionado por construir soluciones escalables y de alto rendimiento. Te unirás a un equipo ágil y dinámico, trabajando en el núcleo de nuestra plataforma. Serás responsable de diseñar, desarrollar y mantener características clave, colaborando estrechamente con diseñadores de producto y otros miembros del equipo para entregar valor continuo a nuestros clientes.",
-    experiencia_desc: ["5+ años de experiencia profesional en ventas y gestión comercial.", "Dominio de metodologías ágiles y manejo de equipos de alto rendimiento.", "Conocimiento en herramientas CRM y análisis de datos de ventas."],
-    requisitos: ["Experiencia sólida en gestión de equipos comerciales.", "Conocimiento en estrategias de ventas B2B y B2C.", "Experiencia trabajando con bases de datos de clientes y CRM.", "Habilidades de negociación y cierre de ventas.", "Capacidad para construir reportes y análisis de rendimiento.", "Nivel de inglés B2 o superior."],
-    match: 85, matchLabel: "Excelente",
-    matchItems: [
-      { texto: "Tu perfil coincide fuertemente con los requisitos del puesto.", tipo: "ok" },
-      { texto: "Tienes la experiencia requerida en gestión de equipos.",        tipo: "ok" },
-      { texto: "Reforzar conocimientos en herramientas CRM avanzadas.",         tipo: "mejora" },
-    ],
-  },
-  2: {
-    id: 2, titulo: "Analista de Mercado", empresa: "Managua Co.", ubicacion: "Managua",
-    categoria: "Marketing", tipo: "Full Time", experiencia: "2 años", fechaLimite: "30 de abril, 2026",
-    publicado: "hace 1 día", salario: "$800 - $1,100 mensuales",
-    descripcion: "Buscamos un Analista de Mercado con capacidad analítica y orientación a resultados. Trabajarás en estrecha colaboración con el equipo de marketing para identificar tendencias y oportunidades de crecimiento.",
-    experiencia_desc: ["2+ años de experiencia en análisis de mercado o áreas relacionadas.", "Manejo de herramientas de análisis de datos.", "Conocimiento en investigación de mercados."],
-    requisitos: ["Experiencia en análisis de datos y métricas de mercado.", "Manejo de Excel avanzado y herramientas de BI.", "Habilidad para presentar insights de forma clara.", "Conocimiento en marketing digital.", "Nivel de inglés intermedio."],
-    match: 72, matchLabel: "Bueno",
-    matchItems: [
-      { texto: "Tu perfil coincide con los requisitos analíticos del puesto.", tipo: "ok"     },
-      { texto: "Tienes experiencia relevante en marketing.",                   tipo: "ok"     },
-      { texto: "Reforzar conocimientos en herramientas de BI.",                tipo: "mejora" },
-    ],
-  },
-}
-
-const fallback = {
-  id: 0, titulo: "Desarrollador Full Stack Senior", empresa: "Empresa Demo", ubicacion: "Managua",
-  categoria: "Tecnología", tipo: "Full Time", experiencia: "3 años", fechaLimite: "15 de abril, 2026",
-  publicado: "hace 2 días", salario: "$1,200 - $1,600 mensuales",
-  descripcion: "Buscamos un Desarrollador Full Stack Senior apasionado por construir soluciones escalables y de alto rendimiento. Te unirás a un equipo ágil y dinámico, trabajando en el núcleo de nuestra plataforma SaaS principal. Serás responsable de diseñar, desarrollar y mantener características clave, colaborando estrechamente con diseñadores de producto y otros ingenieros para entregar valor continuo a nuestros usuarios.",
-  experiencia_desc: ["5+ años de experiencia profesional en desarrollo de software.", "Dominio de metodologías Ágiles (Scrum/Kanban) y flujo de trabajo GitFlow."],
-  requisitos: ["Experiencia sólida en React.js y su ecosistema (Redux, Context API, Hooks).", "Dominio de Node.js y frameworks como Express o NestJS.", "Experiencia trabajando con bases de datos relacionales (PostgreSQL) y NoSQL (MongoDB).", "Conocimientos profundos en arquitectura de microservicios y despliegues en AWS.", "Capacidad para escribir código limpio, testeable y mantenible (TDD/BDD).", "Nivel de inglés B2 o superior."],
-  match: 85, matchLabel: "Excelente",
-  matchItems: [
-    { texto: "Tu perfil coincide fuertemente con los requisitos de React y Node.js.", tipo: "ok"     },
-    { texto: "Tienes la experiencia requerida en AWS.",                               tipo: "ok"     },
-    { texto: "Reforzar conocimientos en NestJS.",                                     tipo: "mejora" },
-  ],
-}
-
 // ─── Barra de progreso ────────────────────────────────────────────────────────
 
 // ─── Sidebar cards ────────────────────────────────────────────────────────────
@@ -158,7 +110,9 @@ export default function DetallesPuestoPage() {
         .catch(() => setNoDisp(true))
         .finally(() => setCargando(false))
     } else {
-      setTrabajo(trabajos[Number(id)] ?? fallback)
+      // Las vacantes públicas se resuelven por public_token (UUID). Cualquier
+      // otro identificador no corresponde a una vacante publicada.
+      setNoDisp(true)
     }
   }, [id])
 
@@ -178,13 +132,18 @@ export default function DetallesPuestoPage() {
     </div>
   )
 
-  const dataTrabajo = trabajo ?? fallback
+  // Sin datos de la vacante no hay nada que mostrar: se evita inventar contenido.
+  if (!trabajo) return null
+
+  const dataTrabajo = trabajo
 
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({ title: dataTrabajo.titulo, text: `${dataTrabajo.titulo} en ${dataTrabajo.empresa}`, url: window.location.href })
-      } catch (_) {}
+      } catch {
+        // Cancelar el diálogo de compartir lanza AbortError: no es un error real.
+      }
     } else {
       navigator.clipboard.writeText(window.location.href)
       setCopiado(true)
