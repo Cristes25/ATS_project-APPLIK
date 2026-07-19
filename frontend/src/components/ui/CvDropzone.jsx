@@ -93,10 +93,15 @@ export default function CvDropzone({ jobToken, onSuccess }) {
     setEnviando(true)
     setError("")
     try {
+      const formData = new FormData();
+      formData.append("file", archivo);
+      formData.append("rawCvText", rawText);
+      formData.append("law787Accepted", "true");
+      formData.append("jobToken", jobToken);
+
       const res = await fetch(`${import.meta.env.VITE_TALENT_SERVICE_URL}/api/v1/talents/public/apply`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawCvText: rawText, law787Accepted: true, jobToken }),
+        body: formData,
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Error al enviar la postulación")

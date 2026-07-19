@@ -1,6 +1,8 @@
 const fastify = require('fastify');
 const cors = require('@fastify/cors');
 const sequelize = require('./infrastructure/database/sequelize');
+const path = require('path');
+const fs = require('fs');
 
 const buildServer = async () => {
     const app = fastify({
@@ -14,6 +16,25 @@ const buildServer = async () => {
     // CORS and Security Headers
     await app.register(cors, {
         origin: '*', // Customize this for production
+    });
+
+    // Crear directorio de uploads si no existe
+    const uploadsDir = path.join(__dirname, '..', 'uploads', 'cvs');
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // File Uploads
+    app.register(require('@fastify/multipart'), {
+        limits: {
+            fileSize: 10 * 1024 * 1024 // 10MB limit
+        }
+    });
+
+    // Static files for serving CVs
+    app.register(require('@fastify/static'), {
+        root: path.join(__dirname, '..', 'uploads'),
+        prefix: '/uploads/',
     });
 
     // Ruta de estado

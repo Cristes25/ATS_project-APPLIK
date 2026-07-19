@@ -60,6 +60,8 @@ services:
       - "traefik.http.routers.talent.entrypoints=websecure"
       - "traefik.http.routers.talent.tls.certresolver=myresolver"
       - "traefik.http.services.talent.loadbalancer.server.port=3002"
+    volumes:
+      - ./uploads_prod:/app/uploads
     networks:
       - ats_network
 
