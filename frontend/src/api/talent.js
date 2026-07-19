@@ -24,10 +24,10 @@ export const updateApplicationStage = (applicationId, stage) =>
 // El endpoint es público, pero si el candidato tiene sesión se manda el token
 // para que el backend ligue la postulación a su cuenta. apiFetch omite la
 // cabecera cuando no hay token, así que el flujo anónimo sigue funcionando.
-export const applyPublic = ({ rawCvText, law787Accepted, jobToken }) =>
+export const applyPublic = (formData) =>
   apiFetch(`${TALENT}/api/v1/talents/public/apply`, {
     method: "POST",
-    body: JSON.stringify({ rawCvText, law787Accepted, jobToken }),
+    body: formData,
   })
 
 // Perfil completo de una postulación: experiencia, educación, habilidades y CV.

@@ -99,7 +99,13 @@ export default function CvDropzone({ jobToken, onSuccess }) {
     setEnviando(true)
     setError("")
     try {
-      await applyPublic({ rawCvText: rawText, law787Accepted: true, jobToken })
+      const formData = new FormData();
+      formData.append("file", archivo);
+      formData.append("rawCvText", rawText);
+      formData.append("law787Accepted", "true");
+      formData.append("jobToken", jobToken);
+
+      await applyPublic(formData)
       setExito(true)
       onSuccess?.()
     } catch (err) {
