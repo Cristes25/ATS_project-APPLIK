@@ -127,17 +127,34 @@ function FiltroSeccion({ titulo, opciones, seleccionados, onToggle }) {
 
 // ─── Sidebar de filtros ───────────────────────────────────────────────────────
 
-function SidebarFiltros({ categorias, filtros, onToggle, onAplicar }) {
+const ETIQUETAS_FILTRO = {
+  categorias:  "Categoría",
+  ubicaciones: "Ubicación",
+  modalidades: "Modalidad",
+  niveles:     "Nivel de Experiencia",
+}
+
+function SidebarFiltros({ opciones, filtros, onToggle, onLimpiar }) {
+  const hayFiltros = Object.values(filtros).some((sel) => sel.length > 0)
   return (
     <div className="w-full">
-      <h2 className="mb-2 text-base font-bold text-slate-800">Filtros</h2>
-      <FiltroSeccion titulo="Categoría" opciones={categorias} seleccionados={filtros.categorias} onToggle={(v) => onToggle("categorias", v)} />
-      <button
-        onClick={onAplicar}
-        className="mt-4 w-full rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white transition-all hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5 active:scale-[0.98]"
-      >
-        Aplicar filtros
-      </button>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-bold text-slate-800">Filtros</h2>
+        {hayFiltros && (
+          <button onClick={onLimpiar} className="text-xs font-medium text-violet-600 hover:text-violet-700">
+            Limpiar
+          </button>
+        )}
+      </div>
+      {Object.entries(opciones).map(([clave, ops]) => (
+        <FiltroSeccion
+          key={clave}
+          titulo={ETIQUETAS_FILTRO[clave]}
+          opciones={ops}
+          seleccionados={filtros[clave]}
+          onToggle={(v) => onToggle(clave, v)}
+        />
+      ))}
     </div>
   )
 }
@@ -199,8 +216,7 @@ export default function TrabajosPage() {
   const [cargando,        setCargando]        = useState(false)
   const [error,           setError]           = useState("")
 
-  const [filtros, setFiltros] = useState({ categorias: [] })
-  const [filtrosAplicados, setFiltrosAplicados] = useState(filtros)
+  const [filtros, setFiltros] = useState({ categorias: [], ubicaciones: [], modalidades: [], niveles: [] })
 
   useEffect(() => {
     const tenantId = getTenantId() ?? searchParams.get("empresa")
@@ -212,10 +228,19 @@ export default function TrabajosPage() {
       .finally(() => setCargando(false))
   }, [])
 
-  // Categorías reales: departamentos únicos de las vacantes disponibles
-  const categorias = [...new Set(vacantesReales.map((j) => j.Department?.name).filter(Boolean))].sort()
+  // Opciones de cada filtro derivadas de los valores reales de las vacantes.
+  // FiltroSeccion se auto-oculta si la lista viene vacía (campo aún sin datos).
+  const opciones = {
+    categorias:  [...new Set(vacantesReales.map((j) => j.Department?.name).filter(Boolean))].sort(),
+    ubicaciones: [...new Set(vacantesReales.map((j) => j.location).filter(Boolean))].sort(),
+    modalidades: [...new Set(vacantesReales.map((j) => j.contract_type).filter(Boolean))].sort(),
+    niveles:     [...new Set(vacantesReales.map((j) => j.experience_level).filter(Boolean))].sort(),
+  }
 
+  // El filtrado es instantáneo: al seleccionar una opción se aplica y se vuelve
+  // a la primera página, sin botón de "aplicar".
   const toggleFiltro = (clave, valor) => {
+    setPagina(1)
     setFiltros((prev) => {
       const arr = prev[clave]
       return {
@@ -225,18 +250,20 @@ export default function TrabajosPage() {
     })
   }
 
-  const aplicarFiltros = () => {
-    setFiltrosAplicados(filtros)
+  const limpiarFiltros = () => {
     setPagina(1)
-    setFiltrosMobile(false)
+    setFiltros({ categorias: [], ubicaciones: [], modalidades: [], niveles: [] })
   }
 
   const resultados = vacantesReales.filter((j) => {
     const titulo  = j.titulo ?? j.title ?? ""
     const empresa = j.empresa ?? j.Department?.name ?? ""
     const matchQ = !busqueda || titulo.toLowerCase().includes(busqueda.toLowerCase()) || empresa.toLowerCase().includes(busqueda.toLowerCase())
-    const matchC = filtrosAplicados.categorias.length === 0 || filtrosAplicados.categorias.includes(j.Department?.name)
-    return matchQ && matchC
+    const matchC = filtros.categorias.length  === 0 || filtros.categorias.includes(j.Department?.name)
+    const matchU = filtros.ubicaciones.length === 0 || filtros.ubicaciones.includes(j.location)
+    const matchM = filtros.modalidades.length === 0 || filtros.modalidades.includes(j.contract_type)
+    const matchN = filtros.niveles.length     === 0 || filtros.niveles.includes(j.experience_level)
+    return matchQ && matchC && matchU && matchM && matchN
   })
 
   useEffect(() => { setPagina(1) }, [busqueda, orden])
@@ -288,7 +315,7 @@ export default function TrabajosPage() {
 
         {/* Sidebar — solo desktop */}
         <aside className="hidden lg:block lg:w-60 shrink-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <SidebarFiltros categorias={categorias} filtros={filtros} onToggle={toggleFiltro} onAplicar={aplicarFiltros} />
+          <SidebarFiltros opciones={opciones} filtros={filtros} onToggle={toggleFiltro} onLimpiar={limpiarFiltros} />
         </aside>
 
         {/* Contenido principal */}
@@ -383,17 +410,30 @@ export default function TrabajosPage() {
               <button onClick={() => setFiltrosMobile(false)}>
                 <ArrowLeft className="size-5 text-slate-600" />
               </button>
-              <h2 className="font-semibold text-slate-800">Filtros</h2>
+              <h2 className="flex-1 font-semibold text-slate-800">Filtros</h2>
+              {Object.values(filtros).some((sel) => sel.length > 0) && (
+                <button onClick={limpiarFiltros} className="text-xs font-medium text-violet-600 hover:text-violet-700">
+                  Limpiar
+                </button>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-2">
-              <FiltroSeccion titulo="Categoría" opciones={categorias} seleccionados={filtros.categorias} onToggle={(v) => toggleFiltro("categorias", v)} />
+              {Object.entries(opciones).map(([clave, ops]) => (
+                <FiltroSeccion
+                  key={clave}
+                  titulo={ETIQUETAS_FILTRO[clave]}
+                  opciones={ops}
+                  seleccionados={filtros[clave]}
+                  onToggle={(v) => toggleFiltro(clave, v)}
+                />
+              ))}
             </div>
             <div className="border-t border-slate-100 p-4">
               <button
-                onClick={aplicarFiltros}
+                onClick={() => setFiltrosMobile(false)}
                 className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white transition-all hover:bg-violet-700"
               >
-                Aplicar filtros
+                Ver {resultados.length} resultados
               </button>
             </div>
           </div>

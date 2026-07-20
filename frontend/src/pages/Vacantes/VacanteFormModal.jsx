@@ -7,7 +7,9 @@ import { Sparkles, Loader2 } from "lucide-react"
 import { fetchDepartments, createDepartment, createJob, updateJob } from "@/api/jobs"
 import { generateJobDescription } from "@/api/ai"
 
-const tiposContrato = ["Full Time", "Part Time", "Contrato", "Temporal", "Prácticas"]
+const tiposContrato = ["Full Time", "Part Time", "Remoto", "Híbrido", "Contrato", "Temporal", "Prácticas"]
+
+const nivelesExperiencia = ["Junior", "Mid-Level", "Senior", "Director"]
 
 const rubrosLaborales = [
   "Administración",
@@ -49,6 +51,7 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
   const [departamento,   setDepartamento]   = useState(vacante?.Department?.name  ?? "")
   const [ubicacion,     setUbicacion]     = useState(vacante?.location           ?? "")
   const [contrato,      setContrato]      = useState(vacante?.contract_type      ?? "")
+  const [experiencia,   setExperiencia]   = useState(vacante?.experience_level   ?? "")
   const [descripcion,   setDescripcion]   = useState(vacante?.description        ?? "")
   const [requisitos,    setRequisitos]    = useState(vacante?.requirements       ?? "")
   const [salarioMin,    setSalarioMin]    = useState(vacante?.salary_min         ?? "")
@@ -107,12 +110,15 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
     }
 
     const body = {
-      title:         titulo,
-      description:   descripcion,
-      requirements:  requisitos || undefined,
-      salary_min:    parseFloat(salarioMin) || 0,
-      salary_max:    parseFloat(salarioMax) || 0,
-      department_id: dept.id,
+      title:            titulo,
+      description:      descripcion,
+      requirements:     requisitos || undefined,
+      location:         ubicacion || undefined,
+      contract_type:    contrato || undefined,
+      experience_level: experiencia || undefined,
+      salary_min:       parseFloat(salarioMin) || 0,
+      salary_max:       parseFloat(salarioMax) || 0,
+      department_id:    dept.id,
     }
 
     try {
@@ -184,22 +190,40 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
             />
           </div>
 
-          {/* Tipo de Contrato */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">Tipo de Contrato</label>
-            <select
-              value={contrato}
-              onChange={(e) => setContrato(e.target.value)}
-              className={cn(
-                "w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800",
-                "focus:border-blue-dark focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-dark/20"
-              )}
-            >
-              <option value="" disabled>Selecciona...</option>
-              {tiposContrato.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+          {/* Tipo de Contrato + Nivel de Experiencia */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-slate-700">Tipo de Contrato</label>
+              <select
+                value={contrato}
+                onChange={(e) => setContrato(e.target.value)}
+                className={cn(
+                  "w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800",
+                  "focus:border-blue-dark focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-dark/20"
+                )}
+              >
+                <option value="" disabled>Selecciona...</option>
+                {tiposContrato.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-slate-700">Nivel de Experiencia</label>
+              <select
+                value={experiencia}
+                onChange={(e) => setExperiencia(e.target.value)}
+                className={cn(
+                  "w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800",
+                  "focus:border-blue-dark focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-dark/20"
+                )}
+              >
+                <option value="">Sin especificar</option>
+                {nivelesExperiencia.map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Paso 1 — Requisitos: la fuente de verdad que la IA usará para redactar */}

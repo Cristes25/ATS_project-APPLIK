@@ -15,12 +15,14 @@ import ProgramarEntrevistaModal from "./ProgramarEntrevistaModal"
 import EnviarCorreoModal from "./EnviarCorreoModal"
 import DetallesCandidatoPage from "./DetallesCandidatoPage"
 
+const ETIQUETAS_FILTRO = { vacantes: "Vacantes", area: "Área", reclutador: "Reclutador" }
+
 function FiltroBtn({ tipo, opciones, seleccionados, onChange }) {
   const [abierto, setAbierto] = useState(false)
   const [pos, setPos]         = useState({ top: 0, left: 0 })
   const btnRef      = useRef(null)
   const dropdownRef = useRef(null)
-  const label = tipo.charAt(0).toUpperCase() + tipo.slice(1)
+  const label = ETIQUETAS_FILTRO[tipo] ?? (tipo.charAt(0).toUpperCase() + tipo.slice(1))
 
   useEffect(() => {
     const handler = (e) => {
@@ -164,7 +166,7 @@ export default function CandidatosPage() {
     tenantId ? null : "No se pudo identificar tu empresa. Vuelve a iniciar sesión."
   )
   const [busqueda, setBusqueda]       = useState("")
-  const [filtros, setFiltros]         = useState({ vacantes: [] })
+  const [filtros, setFiltros]         = useState({ vacantes: [], area: [], reclutador: [] })
   const [menuAbierto, setMenu]        = useState(null)   // id del candidato con menú abierto
   const [menuPos, setMenuPos]         = useState({ top: 0, right: 0 })
   const [modal, setModal]             = useState(null)   // "etapa" | "descartar" | null
@@ -179,16 +181,22 @@ export default function CandidatosPage() {
       .finally(() => setCargando(false))
   }, [tenantId])
 
-  // Las opciones del filtro de vacantes salen de las posiciones reales cargadas.
-  const opcionesVacantes = [...new Set(candidatos.map((c) => c.posicion))]
+  // Las opciones de cada filtro salen de los valores reales cargados.
+  const opciones = {
+    vacantes:   [...new Set(candidatos.map((c) => c.posicion))].filter(Boolean),
+    area:       [...new Set(candidatos.map((c) => c.area))].filter(Boolean),
+    reclutador: [...new Set(candidatos.map((c) => c.reclutador))].filter(Boolean),
+  }
 
   const filtrados = candidatos.filter((c) => {
     const matchBusqueda =
       c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       c.email.toLowerCase().includes(busqueda.toLowerCase()) ||
       c.posicion.toLowerCase().includes(busqueda.toLowerCase())
-    const matchVacantes = filtros.vacantes.length === 0 || filtros.vacantes.includes(c.posicion)
-    return matchBusqueda && matchVacantes
+    const matchVacantes   = filtros.vacantes.length   === 0 || filtros.vacantes.includes(c.posicion)
+    const matchArea       = filtros.area.length       === 0 || filtros.area.includes(c.area)
+    const matchReclutador = filtros.reclutador.length === 0 || filtros.reclutador.includes(c.reclutador)
+    return matchBusqueda && matchVacantes && matchArea && matchReclutador
   })
 
   const abrirDetalles   = (c) => { setCandidato(c); setVista("detalles") }
@@ -280,10 +288,10 @@ export default function CandidatosPage() {
               />
             </div>
             <FiltrosPanel
-              opciones={{ vacantes: opcionesVacantes }}
+              opciones={opciones}
               filtros={filtros}
               onChange={(tipo, vals) => setFiltros((prev) => ({ ...prev, [tipo]: vals }))}
-              onLimpiar={() => setFiltros({ vacantes: [] })}
+              onLimpiar={() => setFiltros({ vacantes: [], area: [], reclutador: [] })}
             />
           </div>
 
