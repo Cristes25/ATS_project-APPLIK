@@ -1,6 +1,9 @@
 const ingestCandidate = require('../../core/useCases/IngestCandidate');
 const jobClient = require('../../infrastructure/jobBridge/JobClient');
 const { Application, CandidateProfile, Job, Candidate, WorkExperience, Education, CandidateSkill, Skill, ApplicationStageHistory, Department, Employee, sequelize } = require('../../core/domain/models');
+const fs = require('fs');
+const path = require('path');
+const pump = require('util').promisify(require('stream').pipeline);
 
 class CandidateController {
 
@@ -9,9 +12,29 @@ class CandidateController {
      * Postulación Externa Directa (RF-12)
      */
     async applyPublic(request, reply) {
-        const { rawCvText, s3Url, law787Accepted, jobToken } = request.body;
-        
+        let rawCvText = '';
+        let law787Accepted = false;
+        let jobToken = '';
+        let s3Url = '';
+
         try {
+            if (!request.isMultipart()) {
+                return reply.code(400).send({ error: 'El formulario debe enviarse como multipart/form-data.' });
+            }
+
+            for await (const part of request.parts()) {
+                if (part.type === 'file') {
+                    const fileName = `candidato_${Date.now()}_${part.filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                    const savePath = path.join(__dirname, '..', '..', '..', 'uploads', 'cvs', fileName);
+                    await pump(part.file, fs.createWriteStream(savePath));
+                    s3Url = `/uploads/cvs/${fileName}`;
+                } else {
+                    if (part.fieldname === 'rawCvText') rawCvText = part.value;
+                    if (part.fieldname === 'law787Accepted') law787Accepted = part.value === 'true' || part.value === true;
+                    if (part.fieldname === 'jobToken') jobToken = part.value;
+                }
+            }
+
             if (!jobToken) {
                 return reply.code(400).send({ error: 'Es obligatorio proveer un jobToken válido para aplicar.' });
             }
@@ -62,10 +85,28 @@ class CandidateController {
      * Carga Manual por Reclutador (RF-13)
      */
     async uploadManual(request, reply) {
-        const { rawCvText, s3Url, jobId } = request.body;
+        let rawCvText = '';
+        let jobId = null;
+        let s3Url = '';
         const law787Accepted = true; // Si es reclutador, se asumen firmas físicas previas o B2B
 
         try {
+            if (!request.isMultipart()) {
+                return reply.code(400).send({ error: 'El formulario debe enviarse como multipart/form-data.' });
+            }
+
+            for await (const part of request.parts()) {
+                if (part.type === 'file') {
+                    const fileName = `candidato_${Date.now()}_${part.filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                    const savePath = path.join(__dirname, '..', '..', '..', 'uploads', 'cvs', fileName);
+                    await pump(part.file, fs.createWriteStream(savePath));
+                    s3Url = `/uploads/cvs/${fileName}`;
+                } else {
+                    if (part.fieldname === 'rawCvText') rawCvText = part.value;
+                    if (part.fieldname === 'jobId') jobId = part.value;
+                }
+            }
+
             if (!jobId) {
                 return reply.code(400).send({ error: 'Debes especificar el jobId en la carga manual del CV.' });
             }
