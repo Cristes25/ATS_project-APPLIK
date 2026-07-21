@@ -10,9 +10,21 @@ const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
  */
 const processAndStoreCv = async (cvText) => {
     const prompt = `
-        Analiza el siguiente texto de CV y extrae la información en un objeto JSON estructurado.
-        El objeto JSON debe incluir claves para "personal_info", "summary", "work_experience", 
-        "education", "skills", y extraccion estructurada para "references" (que de detectar texto en el archivo de este tipo, contenga nombre, empresa y teléfono).
+        Analiza el siguiente texto de CV y extrae la información.
+        Devuelve SOLO un JSON con esta estructura exacta (sin markdown):
+        {
+          "personal_info": { "name": "", "location": "", "phone": "", "email": "" },
+          "summary": "",
+          "work_experience": [
+            { "company_name": "", "job_title": "", "description": "",
+              "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "is_current": false }
+          ],
+          "education": [
+            { "institution": "", "degree": "", "field_of_study": "",
+              "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "is_current": false }
+          ],
+          "skills": [ { "name": "", "level": "basico|intermedio|avanzado" } ]
+        }
 
         Texto del CV:
         "${cvText}"

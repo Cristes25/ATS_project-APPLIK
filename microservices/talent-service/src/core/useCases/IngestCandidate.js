@@ -75,21 +75,21 @@ class IngestCandidateUseCase {
                     company_name: exp.company_name || 'Desconocido',
                     job_title: exp.job_title || 'Colaborador',
                     description: exp.description || '',
-                    start_date: new Date(),
-                    is_current: false
+                    start_date: exp.start_date ? new Date(exp.start_date) : new Date(),
+                    is_current: exp.is_current || false
                 }));
                 await WorkExperience.bulkCreate(workExps, { transaction });
             }
 
             // 5. Procesar Educaciones
-            if (extractedData.educations && extractedData.educations.length > 0) {
-                const educationsMapeadas = extractedData.educations.map(edu => ({
+            if (extractedData.education && extractedData.education.length > 0) {
+                const educationsMapeadas = extractedData.education.map(edu => ({
                     profile_id: profile.id,
                     institution: edu.institution || 'No especificada',
                     degree: edu.degree || 'General',
                     field_of_study: edu.field_of_study || '',
-                    start_date: new Date(), // Mock date (El AI Bridge debería devolver formatos ISO)
-                    is_current: false
+                    start_date: edu.start_date ? new Date(edu.start_date) : new Date(),
+                    is_current: edu.is_current || false
                 }));
                 await Education.bulkCreate(educationsMapeadas, { transaction });
             }
@@ -110,7 +110,7 @@ class IngestCandidateUseCase {
                     candidateSkillsToCreate.push({
                         profile_id: profile.id,
                         skill_id: skillObj.id,
-                        level: 'basico' // El nivel por defecto
+                        level: skillItem.level || 'basico'
                     });
                 }
 
