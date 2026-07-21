@@ -175,6 +175,7 @@ exports.getPublicJobs = async (request, reply) => {
         LEFT JOIN skills s ON s.id = cs.skill_id
         WHERE cp.candidate_id = :candidateId
         GROUP BY cp.id, cp.location, cp.headline
+        ORDER BY cp."updatedAt" DESC
         LIMIT 1
       `, {
         replacements: { candidateId },

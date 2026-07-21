@@ -56,17 +56,41 @@ class IngestCandidateUseCase {
             }
             const mockVectorId = embeddingVector ? `em_local_${crypto.randomUUID().substring(0, 8)}` : null;
 
-            // 3. Crear el Perfil Raíz
-            const profile = await CandidateProfile.create({
-                candidate_id: candidateId,
-                resume_url: localResumeUrl,
-                headline: extractedData.summary || 'Candidato CV Recibido',
-                location: extractedData.personal_info.location || '',
-                phone: extractedData.personal_info.phone || '',
-                linkedin_url: extractedData.personal_info.email || '',
-                embedding_id: mockVectorId, // Guardando la referencia vectorial local
-                law_787_accepted: true
-            }, { transaction });
+            // 3. Buscar o Crear el Perfil Raíz
+            let profile;
+            if (candidateId) {
+                profile = await CandidateProfile.findOne({ where: { candidate_id: candidateId }, transaction });
+            }
+
+            if (profile) {
+                // Actualizar perfil existente
+                await profile.update({
+                    resume_url: localResumeUrl,
+                    headline: extractedData.summary || 'Candidato CV Recibido',
+                    location: extractedData.personal_info.location || '',
+                    phone: extractedData.personal_info.phone || '',
+                    linkedin_url: extractedData.personal_info.email || '',
+                    embedding_id: mockVectorId,
+                    law_787_accepted: true
+                }, { transaction });
+
+                // Destruir data vieja para insertar el CV actualizado
+                await WorkExperience.destroy({ where: { profile_id: profile.id }, transaction });
+                await Education.destroy({ where: { profile_id: profile.id }, transaction });
+                await CandidateSkill.destroy({ where: { profile_id: profile.id }, transaction });
+            } else {
+                // Crear nuevo perfil
+                profile = await CandidateProfile.create({
+                    candidate_id: candidateId,
+                    resume_url: localResumeUrl,
+                    headline: extractedData.summary || 'Candidato CV Recibido',
+                    location: extractedData.personal_info.location || '',
+                    phone: extractedData.personal_info.phone || '',
+                    linkedin_url: extractedData.personal_info.email || '',
+                    embedding_id: mockVectorId,
+                    law_787_accepted: true
+                }, { transaction });
+            }
 
             // 4. Procesar Experiencia Laboral
             if (extractedData.work_experience && extractedData.work_experience.length > 0) {
