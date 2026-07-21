@@ -14,6 +14,7 @@ const Bookmark = require('./Bookmark');
 const Notification = require('./Notification');
 const EmailLog = require('./EmailLog');
 const Employee = require('./Employee');
+const ApplicationNote = require('./ApplicationNote');
 
 // Define Relationships (1-N)
 CandidateProfile.hasMany(WorkExperience, { foreignKey: 'profile_id', as: 'work_experiences' });
@@ -34,6 +35,12 @@ CandidateSkill.belongsTo(Skill, { foreignKey: 'skill_id', as: 'skill_details' })
 // Application Stage History
 Application.hasMany(ApplicationStageHistory, { foreignKey: 'application_id', as: 'stage_history', onDelete: 'CASCADE' });
 ApplicationStageHistory.belongsTo(Application, { foreignKey: 'application_id' });
+
+// Application Notes
+Application.hasMany(ApplicationNote, { foreignKey: 'application_id', as: 'notes', onDelete: 'CASCADE' });
+ApplicationNote.belongsTo(Application, { foreignKey: 'application_id' });
+ApplicationNote.belongsTo(Employee, { foreignKey: 'author_id', as: 'author' });
+Employee.hasMany(ApplicationNote, { foreignKey: 'author_id', as: 'notes' });
 
 // Cross-service read-only relations
 Application.belongsTo(Job, { foreignKey: 'job_id', as: 'job' });
@@ -68,5 +75,6 @@ module.exports = {
     Bookmark,
     Notification,
     EmailLog,
-    Employee
+    Employee,
+    ApplicationNote
 };

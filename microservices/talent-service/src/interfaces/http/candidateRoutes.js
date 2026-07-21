@@ -100,6 +100,33 @@ async function routes(fastify, options) {
         }
     }, candidateController.getApplicationDetails.bind(candidateController));
 
+    // ─── NOTAS DE POSTULACIÓN ─────────────────────────────────────────────────
+
+    // GET /api/v1/talents/applications/:id/notes (Requiere JWT)
+    fastify.get('/applications/:id/notes', {
+        schema: {
+            description: 'Obtener las notas dejadas en una postulación.',
+            tags: ['Talent'],
+            security: [{ bearerAuth: [] }],
+            params: { type: 'object', properties: { id: { type: 'integer' } } }
+        }
+    }, candidateController.getNotes.bind(candidateController));
+
+    // POST /api/v1/talents/applications/:id/notes (Requiere JWT)
+    fastify.post('/applications/:id/notes', {
+        schema: {
+            description: 'Añadir una nota a la postulación.',
+            tags: ['Talent'],
+            security: [{ bearerAuth: [] }],
+            params: { type: 'object', properties: { id: { type: 'integer' } } },
+            body: {
+                type: 'object',
+                required: ['texto'],
+                properties: { texto: { type: 'string' } }
+            }
+        }
+    }, candidateController.addNote.bind(candidateController));
+
     // ─── HISTORIAL DE ETAPAS ──────────────────────────────────────────────────
 
     // PATCH /api/v1/talents/applications/:id/stage
