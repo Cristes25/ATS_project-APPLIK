@@ -38,7 +38,9 @@ export async function fetchApplicationDetails(applicationId) {
     email:       data.email,
     ciudad:      data.location,
     headline:    data.headline,
-    cvUrl:       data.resume_url || "",
+    // resume_url viene como ruta relativa (/uploads/cvs/...) que el talent-service
+    // sirve como estático; se arma la URL absoluta para poder descargarlo.
+    cvUrl:       data.resume_url ? `${TALENT}${data.resume_url}` : "",
     etapa:       ETAPA_UI[data.stage] ?? data.stage,
     score:       data.match_score,
     experiencias: (data.work_experiences ?? []).map((exp) => ({
