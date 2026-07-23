@@ -59,6 +59,18 @@ export async function fetchApplicationDetails(applicationId) {
   }
 }
 
+// Notas del reclutador sobre una postulación (journal: se agregan, no se editan).
+export async function fetchApplicationNotes(applicationId) {
+  const data = await apiFetch(`${TALENT}/api/v1/talents/applications/${applicationId}/notes`)
+  return Array.isArray(data) ? data : []
+}
+
+export const addApplicationNote = (applicationId, texto) =>
+  apiFetch(`${TALENT}/api/v1/talents/applications/${applicationId}/notes`, {
+    method: "POST",
+    body: JSON.stringify({ texto }),
+  })
+
 // Historial real de etapas por las que pasó una postulación.
 export async function fetchApplicationHistory(applicationId) {
   const data = await apiFetch(`${TALENT}/api/v1/talents/applications/${applicationId}/history`)
