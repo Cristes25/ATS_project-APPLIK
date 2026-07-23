@@ -1,6 +1,6 @@
 const ingestCandidate = require('../../core/useCases/IngestCandidate');
 const jobClient = require('../../infrastructure/jobBridge/JobClient');
-const { Application, CandidateProfile, Job, Candidate, WorkExperience, Education, CandidateSkill, Skill, ApplicationStageHistory, Department, Employee, sequelize } = require('../../core/domain/models');
+const { Application, CandidateProfile, Job, Candidate, WorkExperience, Education, CandidateSkill, Skill, ApplicationStageHistory, Department, Employee, ApplicationNote, sequelize } = require('../../core/domain/models');
 const fs = require('fs');
 const path = require('path');
 const pump = require('util').promisify(require('stream').pipeline);
@@ -492,6 +492,127 @@ class CandidateController {
         } catch (error) {
             request.log.error({ err: error }, 'Error al recuperar detalles de la postulación:');
             return reply.code(500).send({ error: 'Error interno del servidor al recuperar detalles del candidato.' });
+        }
+    }
+
+    /**
+     * GET /api/v1/talents/applications/:id/notes
+     * Recupera las notas de una postulación.
+     */
+    async getNotes(request, reply) {
+        const { id } = request.params;
+        const applicationIdInt = parseInt(id, 10);
+
+        if (isNaN(applicationIdInt)) {
+            return reply.code(400).send({ error: 'ID de postulación inválido.' });
+        }
+
+        try {
+            const application = await Application.findByPk(applicationIdInt, {
+                include: [{ model: Job, as: 'job', attributes: ['tenant_id'] }]
+            });
+
+            if (!application) {
+                return reply.code(404).send({ error: 'Postulación no encontrada.' });
+            }
+
+            // Tenant Isolation
+            const job = application.job || {};
+            if (request.tenantId && job.tenant_id !== request.tenantId) {
+                return reply.code(403).send({ error: 'Acceso denegado: esta postulación pertenece a otra organización.' });
+            }
+
+            const notes = await ApplicationNote.findAll({
+                where: { application_id: applicationIdInt },
+                include: [{
+                    model: Employee,
+                    as: 'author',
+                    attributes: ['first_name', 'last_name']
+                }],
+                order: [['created_at', 'DESC']]
+            });
+
+            const mappedNotes = notes.map(n => ({
+                id: n.id,
+                texto: n.content,
+                fecha: n.created_at,
+                autor: n.author ? `${n.author.first_name} ${n.author.last_name}` : 'Desconocido'
+            }));
+
+            return reply.code(200).send(mappedNotes);
+        } catch (error) {
+            request.log.error({ err: error }, 'Error al recuperar notas de la postulación:');
+            return reply.code(500).send({ error: 'Error interno del servidor al recuperar notas.' });
+        }
+    }
+
+    /**
+     * POST /api/v1/talents/applications/:id/notes
+     * Añade una nota a la postulación.
+     */
+    async addNote(request, reply) {
+        const { id } = request.params;
+        const { texto } = request.body;
+        const applicationIdInt = parseInt(id, 10);
+
+        if (isNaN(applicationIdInt)) {
+            return reply.code(400).send({ error: 'ID de postulación inválido.' });
+        }
+        if (!texto || texto.trim().length === 0) {
+            return reply.code(400).send({ error: 'El texto de la nota no puede estar vacío.' });
+        }
+
+        // Obtener el reclutador desde el token
+        const authHeader = request.headers.authorization;
+        let authorId = null;
+        if (authHeader) {
+            try {
+                const jwt = require('jsonwebtoken');
+                const token = authHeader.replace('Bearer ', '');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'applik_super_secret_jwt_key_2026');
+                authorId = decoded.user_id; // Suponiendo que el user_id del reclutador corresponde al Employee id
+            } catch (e) {
+                return reply.code(401).send({ error: 'Token inválido o expirado.' });
+            }
+        }
+
+        if (!authorId) {
+            return reply.code(401).send({ error: 'No se pudo identificar al autor de la nota.' });
+        }
+
+        try {
+            const application = await Application.findByPk(applicationIdInt, {
+                include: [{ model: Job, as: 'job', attributes: ['tenant_id'] }]
+            });
+
+            if (!application) {
+                return reply.code(404).send({ error: 'Postulación no encontrada.' });
+            }
+
+            // Tenant Isolation
+            const job = application.job || {};
+            if (request.tenantId && job.tenant_id !== request.tenantId) {
+                return reply.code(403).send({ error: 'Acceso denegado: esta postulación pertenece a otra organización.' });
+            }
+
+            const note = await ApplicationNote.create({
+                application_id: applicationIdInt,
+                author_id: authorId,
+                content: texto.trim()
+            });
+
+            // Retornar la nota formateada para UI
+            const employee = await Employee.findByPk(authorId, { attributes: ['first_name', 'last_name'] });
+            
+            return reply.code(201).send({
+                id: note.id,
+                texto: note.content,
+                fecha: note.created_at,
+                autor: employee ? `${employee.first_name} ${employee.last_name}` : 'Desconocido'
+            });
+        } catch (error) {
+            request.log.error({ err: error }, 'Error al guardar la nota:');
+            return reply.code(500).send({ error: 'Error interno del servidor al guardar la nota.' });
         }
     }
 }

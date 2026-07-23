@@ -7,20 +7,12 @@ async function routes(fastify, options) {
     fastify.register(tenantInterceptor);
 
     // POST /api/v1/talents/public/apply (Público, no requiere Auth, Requiere jobToken)
+    // El body es multipart/form-data: no lleva schema JSON (Fastify no puede
+    // validar multipart como JSON). Los campos se validan dentro del handler.
     fastify.post('/public/apply', {
         schema: {
-            description: 'Postulación pública a una vacante mediante token seguro.',
+            description: 'Postulación pública a una vacante mediante token seguro (multipart/form-data).',
             tags: ['Talent'],
-            body: {
-                type: 'object',
-                required: ['rawCvText', 'law787Accepted', 'jobToken'],
-                properties: {
-                    rawCvText: { type: 'string', minLength: 20 },
-                    s3Url: { type: 'string', nullable: true },
-                    law787Accepted: { type: 'boolean', enum: [true] },
-                    jobToken: { type: 'string', format: 'uuid' }
-                }
-            }
         }
     }, candidateController.applyPublic.bind(candidateController));
 
@@ -99,6 +91,33 @@ async function routes(fastify, options) {
             }
         }
     }, candidateController.getApplicationDetails.bind(candidateController));
+
+    // ─── NOTAS DE POSTULACIÓN ─────────────────────────────────────────────────
+
+    // GET /api/v1/talents/applications/:id/notes (Requiere JWT)
+    fastify.get('/applications/:id/notes', {
+        schema: {
+            description: 'Obtener las notas dejadas en una postulación.',
+            tags: ['Talent'],
+            security: [{ bearerAuth: [] }],
+            params: { type: 'object', properties: { id: { type: 'integer' } } }
+        }
+    }, candidateController.getNotes.bind(candidateController));
+
+    // POST /api/v1/talents/applications/:id/notes (Requiere JWT)
+    fastify.post('/applications/:id/notes', {
+        schema: {
+            description: 'Añadir una nota a la postulación.',
+            tags: ['Talent'],
+            security: [{ bearerAuth: [] }],
+            params: { type: 'object', properties: { id: { type: 'integer' } } },
+            body: {
+                type: 'object',
+                required: ['texto'],
+                properties: { texto: { type: 'string' } }
+            }
+        }
+    }, candidateController.addNote.bind(candidateController));
 
     // ─── HISTORIAL DE ETAPAS ──────────────────────────────────────────────────
 

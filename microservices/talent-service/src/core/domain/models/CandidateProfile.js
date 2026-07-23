@@ -38,9 +38,9 @@ const CandidateProfile = sequelize.define('CandidateProfile', {
         allowNull: false,
         defaultValue: true,
     },
-    embedding_id: {
-        type: DataTypes.STRING,
-        allowNull: true, // FK a nivel de app hacia vector_db
+    embedding_vector: {
+        type: DataTypes.VECTOR(768), // Gemini embeddings usually return 768 dimensions
+        allowNull: true,
     },
     // La privacidad es imperativa, si retira consentimiento, se aplica lógica de borrado suave.
     law_787_accepted: {

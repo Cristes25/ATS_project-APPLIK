@@ -46,7 +46,6 @@ class IngestCandidateUseCase {
             // const mockCandidateId = Math.floor(Math.random() * 1000000);
 
             // 2.5 Generar Vector Semántico del Perfil
-            // Se obtiene el array (vector) del AI Bridge de manera segura
             let embeddingVector = null;
             try {
                 embeddingVector = await aiClient.getEmbedding(rawCvText);
@@ -54,19 +53,42 @@ class IngestCandidateUseCase {
                 console.error('[IngestCandidate] Error obteniendo embedding:', err.message);
                 embeddingVector = null;
             }
-            const mockVectorId = embeddingVector ? `em_local_${crypto.randomUUID().substring(0, 8)}` : null;
 
-            // 3. Crear el Perfil Raíz
-            const profile = await CandidateProfile.create({
-                candidate_id: candidateId,
-                resume_url: localResumeUrl,
-                headline: extractedData.summary || 'Candidato CV Recibido',
-                location: extractedData.personal_info.location || '',
-                phone: extractedData.personal_info.phone || '',
-                linkedin_url: extractedData.personal_info.email || '',
-                embedding_id: mockVectorId, // Guardando la referencia vectorial local
-                law_787_accepted: true
-            }, { transaction });
+            // 3. Buscar o Crear el Perfil Raíz
+            let profile;
+            if (candidateId) {
+                profile = await CandidateProfile.findOne({ where: { candidate_id: candidateId }, transaction });
+            }
+
+            if (profile) {
+                // Actualizar perfil existente
+                await profile.update({
+                    resume_url: localResumeUrl,
+                    headline: extractedData.summary || 'Candidato CV Recibido',
+                    location: extractedData.personal_info.location || '',
+                    phone: extractedData.personal_info.phone || '',
+                    linkedin_url: extractedData.personal_info.email || '',
+                    embedding_vector: embeddingVector,
+                    law_787_accepted: true
+                }, { transaction });
+
+                // Destruir data vieja para insertar el CV actualizado
+                await WorkExperience.destroy({ where: { profile_id: profile.id }, transaction });
+                await Education.destroy({ where: { profile_id: profile.id }, transaction });
+                await CandidateSkill.destroy({ where: { profile_id: profile.id }, transaction });
+            } else {
+                // Crear nuevo perfil
+                profile = await CandidateProfile.create({
+                    candidate_id: candidateId,
+                    resume_url: localResumeUrl,
+                    headline: extractedData.summary || 'Candidato CV Recibido',
+                    location: extractedData.personal_info.location || '',
+                    phone: extractedData.personal_info.phone || '',
+                    linkedin_url: extractedData.personal_info.email || '',
+                    embedding_vector: embeddingVector,
+                    law_787_accepted: true
+                }, { transaction });
+            }
 
             // 4. Procesar Experiencia Laboral
             if (extractedData.work_experience && extractedData.work_experience.length > 0) {
@@ -75,21 +97,21 @@ class IngestCandidateUseCase {
                     company_name: exp.company_name || 'Desconocido',
                     job_title: exp.job_title || 'Colaborador',
                     description: exp.description || '',
-                    start_date: new Date(),
-                    is_current: false
+                    start_date: exp.start_date ? new Date(exp.start_date) : new Date(),
+                    is_current: exp.is_current || false
                 }));
                 await WorkExperience.bulkCreate(workExps, { transaction });
             }
 
             // 5. Procesar Educaciones
-            if (extractedData.educations && extractedData.educations.length > 0) {
-                const educationsMapeadas = extractedData.educations.map(edu => ({
+            if (extractedData.education && extractedData.education.length > 0) {
+                const educationsMapeadas = extractedData.education.map(edu => ({
                     profile_id: profile.id,
                     institution: edu.institution || 'No especificada',
                     degree: edu.degree || 'General',
                     field_of_study: edu.field_of_study || '',
-                    start_date: new Date(), // Mock date (El AI Bridge debería devolver formatos ISO)
-                    is_current: false
+                    start_date: edu.start_date ? new Date(edu.start_date) : new Date(),
+                    is_current: edu.is_current || false
                 }));
                 await Education.bulkCreate(educationsMapeadas, { transaction });
             }
@@ -110,7 +132,7 @@ class IngestCandidateUseCase {
                     candidateSkillsToCreate.push({
                         profile_id: profile.id,
                         skill_id: skillObj.id,
-                        level: 'basico' // El nivel por defecto
+                        level: skillItem.level || 'basico'
                     });
                 }
 
@@ -119,18 +141,42 @@ class IngestCandidateUseCase {
                 }
             }
 
-            // 7. Encolado del "Match Score"
-            // Por arquitectura (PGVector), el match score se computará comparando `embeddingVector`
-            // contra los Embeddings de las tablas de Vacantes en el backend.
-
-            // 8. Crear la Tupla de Aplicación a Vacante
+            // 7. Cálculo NATIVO del Match Score (pgvector)
             let application = null;
             if (jobId) {
+                let matchScore = null;
+                
+                if (embeddingVector) {
+                    try {
+                        // Calcula Similitud Coseno usando operador nativo <=>
+                        // Raw Similarity será ~0.7 a 0.95 en un modelo Gemini para contextos laborales.
+                        const [results] = await sequelize.query(`
+                            SELECT 1 - (cp.embedding_vector <=> j.embedding_vector) AS raw_similarity
+                            FROM candidate_profiles cp, jobs j
+                            WHERE cp.id = :profileId AND j.id = :jobId
+                        `, {
+                            replacements: { profileId: profile.id, jobId },
+                            transaction
+                        });
+
+                        if (results && results.length > 0 && results[0].raw_similarity !== null) {
+                            const rawSim = parseFloat(results[0].raw_similarity);
+                            
+                            // Calibrar para estirar a un rango 0-100 para la UI
+                            let calibrated = (rawSim - 0.65) / (0.95 - 0.65);
+                            calibrated = Math.max(0, Math.min(1, calibrated)); // limitar a 0.0 - 1.0
+                            matchScore = Math.round(calibrated * 100);
+                        }
+                    } catch (e) {
+                        console.error('[IngestCandidate] Error en pgvector:', e.message);
+                    }
+                }
+
                 application = await Application.create({
                     profile_id: profile.id,
                     job_id: jobId,
                     status: 'postulado',
-                    // match_score: null -> Se calculará asincronamente después
+                    match_score: matchScore,
                 }, { transaction });
 
                 // Registrar el estado inicial en el historial

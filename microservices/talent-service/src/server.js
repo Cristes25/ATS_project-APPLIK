@@ -16,6 +16,7 @@ const buildServer = async () => {
     // CORS and Security Headers
     await app.register(cors, {
         origin: '*', // Customize this for production
+        methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     });
 
     // Crear directorio de uploads si no existe
