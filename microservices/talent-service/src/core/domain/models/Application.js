@@ -22,7 +22,7 @@ const Application = sequelize.define('Application', {
         defaultValue: 'postulado'
     },
     match_score: {
-        type: DataTypes.DECIMAL(3, 2), // 0.00 to 1.00
+        type: DataTypes.INTEGER, // 0 to 100
         allowNull: true,
     },
     applied_at: {

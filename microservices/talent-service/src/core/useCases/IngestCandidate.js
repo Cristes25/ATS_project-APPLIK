@@ -46,7 +46,6 @@ class IngestCandidateUseCase {
             // const mockCandidateId = Math.floor(Math.random() * 1000000);
 
             // 2.5 Generar Vector Semántico del Perfil
-            // Se obtiene el array (vector) del AI Bridge de manera segura
             let embeddingVector = null;
             try {
                 embeddingVector = await aiClient.getEmbedding(rawCvText);
@@ -54,7 +53,6 @@ class IngestCandidateUseCase {
                 console.error('[IngestCandidate] Error obteniendo embedding:', err.message);
                 embeddingVector = null;
             }
-            const mockVectorId = embeddingVector ? `em_local_${crypto.randomUUID().substring(0, 8)}` : null;
 
             // 3. Buscar o Crear el Perfil Raíz
             let profile;
@@ -70,7 +68,7 @@ class IngestCandidateUseCase {
                     location: extractedData.personal_info.location || '',
                     phone: extractedData.personal_info.phone || '',
                     linkedin_url: extractedData.personal_info.email || '',
-                    embedding_id: mockVectorId,
+                    embedding_vector: embeddingVector,
                     law_787_accepted: true
                 }, { transaction });
 
@@ -87,7 +85,7 @@ class IngestCandidateUseCase {
                     location: extractedData.personal_info.location || '',
                     phone: extractedData.personal_info.phone || '',
                     linkedin_url: extractedData.personal_info.email || '',
-                    embedding_id: mockVectorId,
+                    embedding_vector: embeddingVector,
                     law_787_accepted: true
                 }, { transaction });
             }
@@ -143,18 +141,42 @@ class IngestCandidateUseCase {
                 }
             }
 
-            // 7. Encolado del "Match Score"
-            // Por arquitectura (PGVector), el match score se computará comparando `embeddingVector`
-            // contra los Embeddings de las tablas de Vacantes en el backend.
-
-            // 8. Crear la Tupla de Aplicación a Vacante
+            // 7. Cálculo NATIVO del Match Score (pgvector)
             let application = null;
             if (jobId) {
+                let matchScore = null;
+                
+                if (embeddingVector) {
+                    try {
+                        // Calcula Similitud Coseno usando operador nativo <=>
+                        // Raw Similarity será ~0.7 a 0.95 en un modelo Gemini para contextos laborales.
+                        const [results] = await sequelize.query(`
+                            SELECT 1 - (cp.embedding_vector <=> j.embedding_vector) AS raw_similarity
+                            FROM candidate_profiles cp, jobs j
+                            WHERE cp.id = :profileId AND j.id = :jobId
+                        `, {
+                            replacements: { profileId: profile.id, jobId },
+                            transaction
+                        });
+
+                        if (results && results.length > 0 && results[0].raw_similarity !== null) {
+                            const rawSim = parseFloat(results[0].raw_similarity);
+                            
+                            // Calibrar para estirar a un rango 0-100 para la UI
+                            let calibrated = (rawSim - 0.65) / (0.95 - 0.65);
+                            calibrated = Math.max(0, Math.min(1, calibrated)); // limitar a 0.0 - 1.0
+                            matchScore = Math.round(calibrated * 100);
+                        }
+                    } catch (e) {
+                        console.error('[IngestCandidate] Error en pgvector:', e.message);
+                    }
+                }
+
                 application = await Application.create({
                     profile_id: profile.id,
                     job_id: jobId,
                     status: 'postulado',
-                    // match_score: null -> Se calculará asincronamente después
+                    match_score: matchScore,
                 }, { transaction });
 
                 // Registrar el estado inicial en el historial

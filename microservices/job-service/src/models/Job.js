@@ -70,6 +70,10 @@ const Job = sequelize.define('Job', {
     allowNull: false,
     unique: true,
   },
+  embedding_vector: {
+    type: DataTypes.VECTOR(768),
+    allowNull: true,
+  },
 }, {
   timestamps: true,
 });

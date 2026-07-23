@@ -1,4 +1,5 @@
 const { Job, Department, sequelize } = require('../models');
+const aiClient = require('../utils/AiClient');
 
 // POST /jobs
 // ... (rest of code is unmodified but this replacement is contiguous)
@@ -14,6 +15,12 @@ exports.createJob = async (request, reply) => {
   }
 
   try {
+    const jobText = `${title}. ${description}. Requisitos: ${requirements}`;
+    let embedding_vector = await aiClient.getEmbedding(jobText);
+    
+    // Fallback if vector generation fails temporarily
+    if (!embedding_vector) embedding_vector = null;
+
     const job = await Job.create({
       tenant_id,
       department_id,
@@ -29,6 +36,7 @@ exports.createJob = async (request, reply) => {
       currency,
       closes_at,
       status: 'draft',
+      embedding_vector,
     });
     return reply.code(201).send(job);
   } catch (error) {
@@ -95,7 +103,15 @@ exports.updateJob = async (request, reply) => {
     const job = await Job.findOne({ where: { id, tenant_id } });
     if (!job) return reply.code(404).send({ error: 'Vacante no encontrada.' });
 
-    await job.update({ title, description, requirements, location, contract_type, experience_level, salary_min, salary_max, currency, department_id, closes_at, status });
+    // Regenerar el vector si cambiaron los textos principales
+    let embedding_vector = job.embedding_vector;
+    if (title !== job.title || description !== job.description || requirements !== job.requirements) {
+      const jobText = `${title}. ${description}. Requisitos: ${requirements}`;
+      const newEmbedding = await aiClient.getEmbedding(jobText);
+      if (newEmbedding) embedding_vector = newEmbedding;
+    }
+
+    await job.update({ title, description, requirements, location, contract_type, experience_level, salary_min, salary_max, currency, department_id, closes_at, status, embedding_vector });
     return reply.send(job);
   } catch (error) {
     request.log.error(error);

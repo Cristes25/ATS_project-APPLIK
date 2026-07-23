@@ -1,5 +1,8 @@
 const { Sequelize } = require('sequelize');
+const pgvector = require('pgvector/sequelize');
 require('dotenv').config();
+
+pgvector.registerType(Sequelize);
 
 // Conectar a la DB en PostgreSQL nativo (Local sin Docker)
 const sequelize = new Sequelize(
