@@ -51,12 +51,14 @@ function SidebarContent({ trabajo }) {
 
       {/* Job Overview */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-bold text-slate-800">Job Overview</h3>
+        <h3 className="mb-4 text-sm font-bold text-slate-800">Detalles del puesto</h3>
         <div className="space-y-3">
           {[
-            { label: "Título",       valor: trabajo.titulo     },
-            { label: "Categoría",    valor: trabajo.categoria  },
-            { label: "Fecha límite", valor: trabajo.fechaLimite },
+            { label: "Categoría",           valor: trabajo.categoria  },
+            { label: "Ubicación",           valor: trabajo.ubicacion  },
+            { label: "Modalidad",           valor: trabajo.modalidad  },
+            { label: "Nivel de experiencia", valor: trabajo.nivel     },
+            { label: "Fecha límite",        valor: trabajo.fechaLimite },
           ].filter(f => f.valor).map(({ label, valor }) => (
             <div key={label}>
               <p className="text-xs text-slate-400">{label}</p>
@@ -96,7 +98,9 @@ export default function DetallesPuestoPage() {
           setTrabajo({
             titulo:           data.title,
             empresa:          data.Department?.name ?? "",
-            ubicacion:        "Nicaragua",
+            ubicacion:        data.location ?? "",
+            modalidad:        data.contract_type ?? "",
+            nivel:            data.experience_level ?? "",
             categoria:        data.Department?.name ?? "",
             publicado:        `hace ${Math.floor((Date.now() - new Date(data.createdAt)) / 86400000)} días`,
             fechaLimite:      data.closes_at ? new Date(data.closes_at).toLocaleDateString("es") : "Abierta",

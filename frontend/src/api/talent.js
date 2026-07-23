@@ -75,6 +75,8 @@ export async function fetchApplications(tenantId) {
     nombre:         app.candidate_name,
     email:          app.email,
     posicion:       app.job_title,
+    area:           app.area,             // departamento de la vacante
+    reclutador:     app.recruiter,        // quien publicó la vacante
     etapa:          ETAPA_UI[app.stage] ?? app.stage,
     score:          app.match_score,      // el backend ya lo devuelve en 0-100
   }))
