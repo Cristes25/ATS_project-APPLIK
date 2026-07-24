@@ -49,14 +49,12 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
 
     Promise.all([
       fetchApplicationDetails(applicationId),
-      // El historial y las notas son complementarios: si fallan, la ficha igual se muestra.
-      fetchApplicationHistory(applicationId).catch(() => []),
+      // Las notas son complementarias: si fallan, la ficha igual se muestra.
       fetchApplicationNotes(applicationId).catch(() => []),
     ])
-      .then(([datos, etapas, notasData]) => {
+      .then(([datos, notasData]) => {
         if (!vigente) return
         setDetalle(datos)
-        setHistorial(etapas)
         setNotas(notasData)
       })
       .catch((err) => {
@@ -66,6 +64,17 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
 
     return () => { vigente = false }
   }, [applicationId])
+
+  // El historial se recarga solo cuando cambia la etapa (ej. al mover de etapa),
+  // para que el timeline se actualice sin recargar la página.
+  useEffect(() => {
+    if (!applicationId) return
+    let vigente = true
+    fetchApplicationHistory(applicationId)
+      .then((etapas) => { if (vigente) setHistorial(etapas) })
+      .catch(() => {})
+    return () => { vigente = false }
+  }, [applicationId, candidato?.etapa])
 
   const handleAgregarNota = async () => {
     const texto = nuevaNota.trim()

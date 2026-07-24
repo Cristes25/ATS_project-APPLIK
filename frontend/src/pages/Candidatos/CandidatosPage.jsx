@@ -219,6 +219,8 @@ export default function CandidatosPage() {
     setCandidatos((prev) =>
       prev.map((c) => c.id === candidatoActivo.id ? { ...c, etapa: nuevaEtapa } : c)
     )
+    // También el candidato activo, para que el detalle refresque su historial.
+    setCandidato((prev) => prev ? { ...prev, etapa: nuevaEtapa } : prev)
     cerrarModal()
   }
 
