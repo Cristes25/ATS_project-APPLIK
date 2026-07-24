@@ -97,7 +97,8 @@ class IngestCandidateUseCase {
                     company_name: exp.company_name || 'Desconocido',
                     job_title: exp.job_title || 'Colaborador',
                     description: exp.description || '',
-                    start_date: exp.start_date ? new Date(exp.start_date) : new Date(),
+                    start_date: (exp.start_date && !isNaN(new Date(exp.start_date))) ? new Date(exp.start_date) : new Date(),
+                    end_date: (exp.end_date && !isNaN(new Date(exp.end_date))) ? new Date(exp.end_date) : null,
                     is_current: exp.is_current || false
                 }));
                 await WorkExperience.bulkCreate(workExps, { transaction });
@@ -110,7 +111,8 @@ class IngestCandidateUseCase {
                     institution: edu.institution || 'No especificada',
                     degree: edu.degree || 'General',
                     field_of_study: edu.field_of_study || '',
-                    start_date: edu.start_date ? new Date(edu.start_date) : new Date(),
+                    start_date: (edu.start_date && !isNaN(new Date(edu.start_date))) ? new Date(edu.start_date) : new Date(),
+                    end_date: (edu.end_date && !isNaN(new Date(edu.end_date))) ? new Date(edu.end_date) : null,
                     is_current: edu.is_current || false
                 }));
                 await Education.bulkCreate(educationsMapeadas, { transaction });
@@ -122,8 +124,9 @@ class IngestCandidateUseCase {
 
                 for (const skillItem of extractedData.skills) {
                     // Buscar o crear la habilidad en el catálogo general
+                    const skillName = typeof skillItem === 'string' ? skillItem : (skillItem.name || 'Habilidad Desconocida');
                     const [skillObj] = await Skill.findOrCreate({
-                        where: { name: skillItem.name || 'Habilidad Desconocida' },
+                        where: { name: skillName },
                         defaults: { type: 'tecnica' }, // Default fallback
                         transaction
                     });
