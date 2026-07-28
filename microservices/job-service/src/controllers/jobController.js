@@ -105,8 +105,12 @@ exports.updateJob = async (request, reply) => {
 
     // Regenerar el vector si cambiaron los textos principales
     let embedding_vector = job.embedding_vector;
-    if (title !== job.title || description !== job.description || requirements !== job.requirements) {
-      const jobText = `${title}. ${description}. Requisitos: ${requirements}`;
+    const tituloCambio = title !== undefined && title !== job.title;
+    const descripcionCambio = description !== undefined && description !== job.description;
+    const requisitosCambio = requirements !== undefined && requirements !== job.requirements;
+
+    if (tituloCambio || descripcionCambio || requisitosCambio) {
+      const jobText = `${title ?? job.title}. ${description ?? job.description}. Requisitos: ${requirements ?? job.requirements}`;
       const newEmbedding = await aiClient.getEmbedding(jobText);
       if (newEmbedding) embedding_vector = newEmbedding;
     }
