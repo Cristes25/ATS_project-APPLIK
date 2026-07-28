@@ -11,7 +11,7 @@ exports.createEmbedding = async (req, res) => {
         const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001', generationConfig: { outputDimensionality: 768 } });
 
         const result = await model.embedContent(text);
-        const embedding = result.embedding.values;
+        const embedding = result.embedding.values.slice(0, 768);
 
         res.status(200).json({ embedding });
 
