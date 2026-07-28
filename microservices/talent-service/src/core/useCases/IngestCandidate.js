@@ -155,7 +155,7 @@ class IngestCandidateUseCase {
                         // Raw Similarity será ~0.7 a 0.95 en un modelo Gemini para contextos laborales.
                         const [results] = await sequelize.query(`
                             SELECT 1 - (cp.embedding_vector <=> j.embedding_vector) AS raw_similarity
-                            FROM candidate_profiles cp, jobs j
+                            FROM candidate_profiles cp, "Jobs" j
                             WHERE cp.id = :profileId AND j.id = :jobId
                         `, {
                             replacements: { profileId: profile.id, jobId },
@@ -166,9 +166,11 @@ class IngestCandidateUseCase {
                             const rawSim = parseFloat(results[0].raw_similarity);
                             
                             // Calibrar para estirar a un rango 0-100 para la UI
-                            let calibrated = (rawSim - 0.65) / (0.95 - 0.65);
+                            const MATCH_MIN = 0.45;
+                            const MATCH_MAX = 0.65;
+                            let calibrated = (rawSim - MATCH_MIN) / (MATCH_MAX - MATCH_MIN);
                             calibrated = Math.max(0, Math.min(1, calibrated)); // limitar a 0.0 - 1.0
-                            matchScore = Math.round(calibrated * 100);
+                            matchScore = Math.round(calibrated * 100) / 100;
                         }
                     } catch (e) {
                         console.error('[IngestCandidate] Error en pgvector:', e.message);

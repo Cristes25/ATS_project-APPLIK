@@ -8,7 +8,7 @@ exports.createEmbedding = async (req, res) => {
             return res.status(400).json({ error: 'Se requiere una cadena de texto no vacía en el cuerpo de la solicitud.' });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001', generationConfig: { outputDimensionality: 768 } });
 
         const result = await model.embedContent(text);
         const embedding = result.embedding.values;
