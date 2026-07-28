@@ -23,8 +23,11 @@ module.exports = fp(async function (fastify, opts) {
 
             const token = authHeader.replace('Bearer ', '');
 
+            if (!process.env.JWT_SECRET) {
+                throw new Error("CRITICAL: JWT_SECRET environment variable is missing.");
+            }
             // Decodificamos validando contra el mismo JWT_SECRET que usa auth-service
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test-secret');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
             if (!decoded.company_id) {
                 return reply.code(403).send({ error: 'Token inválido: falta company_id, restricción de aislamiento vulnerada.' });

@@ -49,7 +49,7 @@ class CandidateController {
                 try {
                     const token = authHeader.replace('Bearer ', '');
                     const jwt = require('jsonwebtoken');
-                    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'applik_super_secret_jwt_key_2026');
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET);
                     request.log.info({ authHeader, decoded }, 'DECODED CANDIDATE TOKEN:');
                     if (decoded.role === 'aplicante' || decoded.role === 'candidate') {
                         candidateId = decoded.user_id;
@@ -313,7 +313,7 @@ class CandidateController {
         try {
             const jwt = require('jsonwebtoken');
             const token = authHeader.replace('Bearer ', '');
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'applik_super_secret_jwt_key_2026');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
             // Verificar que el usuario que borra sea el mismo candidato
             if (decoded.role !== 'aplicante' || decoded.user_id !== candidateIdInt) {
@@ -569,7 +569,7 @@ class CandidateController {
             try {
                 const jwt = require('jsonwebtoken');
                 const token = authHeader.replace('Bearer ', '');
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'applik_super_secret_jwt_key_2026');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 authorId = decoded.user_id; // Suponiendo que el user_id del reclutador corresponde al Employee id
             } catch (e) {
                 return reply.code(401).send({ error: 'Token inválido o expirado.' });

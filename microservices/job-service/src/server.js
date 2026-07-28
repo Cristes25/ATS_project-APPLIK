@@ -14,8 +14,17 @@ const fastify = require('fastify')({
 });
 
 // PLUGINS
+const allowedOrigins = ['http://localhost:5173', 'https://applik-ni.com', 'https://www.applik-ni.com', 'https://app.applik-ni.com'];
 fastify.register(require('@fastify/cors'), {
-  origin: '*',
+  origin: (origin, cb) => {
+    // Permite peticiones sin origen (ej. curl o postman durante pruebas backend)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      cb(null, true);
+      return;
+    }
+    cb(new Error("Not allowed by CORS"), false);
+  },
   methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 });
 
