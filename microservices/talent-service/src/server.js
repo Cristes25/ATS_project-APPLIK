@@ -14,8 +14,16 @@ const buildServer = async () => {
     });
 
     // CORS and Security Headers
+    const allowedOrigins = ['http://localhost:5173', 'https://applik-ni.com', 'https://www.applik-ni.com', 'https://app.applik-ni.com'];
     await app.register(cors, {
-        origin: '*', // Customize this for production
+        origin: (origin, cb) => {
+            if (!origin) return cb(null, true);
+            if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+                cb(null, true);
+                return;
+            }
+            cb(new Error("Not allowed by CORS"), false);
+        },
         methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     });
 
