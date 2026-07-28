@@ -4,10 +4,13 @@ import { Avatar } from "@/components/ui/Avatar"
 import { StageBadge, STAGES } from "@/components/ui/StageBadge"
 import { Button } from "@/components/ui/button"
 import { matchScoreAPorcentaje } from "@/lib/matchScore"
-import { fetchApplicationDetails, fetchApplicationHistory } from "@/api/talent"
+import { fetchApplicationDetails, fetchApplicationHistory, fetchApplicationNotes, addApplicationNote } from "@/api/talent"
 
 const formatearFecha = (fecha) =>
   new Date(fecha).toLocaleDateString("es-NI", { day: "numeric", month: "short", year: "numeric" })
+
+const formatearFechaHora = (fecha) =>
+  new Date(fecha).toLocaleString("es-NI", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
 
 // El CV solo es descargable si el backend guardó una URL absoluta (S3).
 const esDescargable = (url) => Boolean(url) && /^https?:\/\//.test(url)
@@ -28,8 +31,13 @@ function SinDatos({ children }) {
 export default function DetallesCandidatoPage({ candidato, onBack, onActualizarEtapa, onDescartar }) {
   const [detalle,   setDetalle]   = useState(null)
   const [historial, setHistorial] = useState([])
+  const [notas,     setNotas]     = useState([])
   const [cargando,  setCargando]  = useState(true)
   const [error,     setError]     = useState("")
+
+  const [nuevaNota,    setNuevaNota]    = useState("")
+  const [guardandoNota, setGuardandoNota] = useState(false)
+  const [errorNota,    setErrorNota]    = useState("")
 
   const applicationId = candidato?.application_id
 
@@ -41,13 +49,13 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
 
     Promise.all([
       fetchApplicationDetails(applicationId),
-      // El historial es complementario: si falla, la ficha igual se muestra.
-      fetchApplicationHistory(applicationId).catch(() => []),
+      // Las notas son complementarias: si fallan, la ficha igual se muestra.
+      fetchApplicationNotes(applicationId).catch(() => []),
     ])
-      .then(([datos, etapas]) => {
+      .then(([datos, notasData]) => {
         if (!vigente) return
         setDetalle(datos)
-        setHistorial(etapas)
+        setNotas(notasData)
       })
       .catch((err) => {
         if (vigente) setError(err.message ?? "No se pudo cargar el perfil del candidato")
@@ -56,6 +64,33 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
 
     return () => { vigente = false }
   }, [applicationId])
+
+  // El historial se recarga solo cuando cambia la etapa (ej. al mover de etapa),
+  // para que el timeline se actualice sin recargar la página.
+  useEffect(() => {
+    if (!applicationId) return
+    let vigente = true
+    fetchApplicationHistory(applicationId)
+      .then((etapas) => { if (vigente) setHistorial(etapas) })
+      .catch(() => {})
+    return () => { vigente = false }
+  }, [applicationId, candidato?.etapa])
+
+  const handleAgregarNota = async () => {
+    const texto = nuevaNota.trim()
+    if (!texto || guardandoNota) return
+    setGuardandoNota(true)
+    setErrorNota("")
+    try {
+      const nota = await addApplicationNote(applicationId, texto)
+      setNotas((prev) => [nota, ...prev])   // el backend las ordena por fecha desc
+      setNuevaNota("")
+    } catch (err) {
+      setErrorNota(err.message ?? "No se pudo guardar la nota")
+    } finally {
+      setGuardandoNota(false)
+    }
+  }
 
   if (!candidato) return null
 
@@ -160,6 +195,39 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
                   </div>
                 ) : (
                   <SinDatos>La IA no extrajo estudios de este CV.</SinDatos>
+                )}
+              </Seccion>
+
+              <Seccion titulo="Notas del reclutador">
+                <div className="space-y-2">
+                  <textarea
+                    value={nuevaNota}
+                    onChange={(e) => { setNuevaNota(e.target.value); setErrorNota("") }}
+                    placeholder="Agrega una observación sobre este candidato..."
+                    rows={3}
+                    className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-dark focus:outline-none focus:ring-2 focus:ring-blue-dark/20"
+                  />
+                  {errorNota && <p className="text-xs text-red-500">{errorNota}</p>}
+                  <div className="flex justify-end">
+                    <Button variant="primary" size="sm" onClick={handleAgregarNota} disabled={!nuevaNota.trim() || guardandoNota}>
+                      {guardandoNota
+                        ? <span className="flex items-center gap-1.5"><Loader2 className="size-3.5 animate-spin" /> Guardando...</span>
+                        : "Agregar nota"}
+                    </Button>
+                  </div>
+                </div>
+
+                {notas.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    {notas.map((n) => (
+                      <div key={n.id} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+                        <p className="text-sm text-slate-700 whitespace-pre-line">{n.texto}</p>
+                        <p className="mt-1.5 text-xs text-slate-400">{n.autor} · {formatearFechaHora(n.fecha)}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-slate-400">Todavía no hay notas para este candidato.</p>
                 )}
               </Seccion>
 
