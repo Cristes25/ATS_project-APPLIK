@@ -170,7 +170,7 @@ class IngestCandidateUseCase {
                             const MATCH_MAX = 0.65;
                             let calibrated = (rawSim - MATCH_MIN) / (MATCH_MAX - MATCH_MIN);
                             calibrated = Math.max(0, Math.min(1, calibrated)); // limitar a 0.0 - 1.0
-                            matchScore = Math.round(calibrated * 100) / 100;
+                            matchScore = Math.round(calibrated * 100); // Guardamos como entero (0-100) porque la DB exige INTEGER
                         }
                     } catch (e) {
                         console.error('[IngestCandidate] Error en pgvector:', e.message);
