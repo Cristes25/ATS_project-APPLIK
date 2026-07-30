@@ -5,6 +5,10 @@ if (!process.env.GEMINI_API_KEY){
     throw new Error ('GEMINI_API_KEY no definido ')
 
 }
-//INICIALIZAR CLIENTE AI CON LA LLAVE 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-module.exports = genAI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Modelo centralizado para generación de texto (cumpliendo principio DRY)
+const modelName = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+genAI.defaultTextModel = genAI.getGenerativeModel({ model: modelName });
+
+module.exports = genAI;
