@@ -262,7 +262,7 @@ class CandidateController {
                     : (profile.linkedin_url || '');
 
                 const scorePercent = app.match_score 
-                    ? Math.round(parseFloat(app.match_score) * 100) 
+                    ? parseInt(app.match_score, 10) 
                     : 0;
 
                 const areaName = (app.job && app.job.department) ? app.job.department.name : 'Sin Área';
@@ -462,7 +462,7 @@ class CandidateController {
                 : 'Candidato Ingestado';
 
             const scorePercent = application.match_score 
-                ? Math.round(parseFloat(application.match_score) * 100) 
+                ? parseInt(application.match_score, 10)
                 : 0;
 
             // Formatear Habilidades
