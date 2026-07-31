@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react"
-import { ArrowLeft, Download, CheckCircle2, Clock, Circle, Loader2 } from "lucide-react"
+import { ArrowLeft, Download, CheckCircle2, Clock, Loader2 } from "lucide-react"
 import { Avatar } from "@/components/ui/Avatar"
-import { StageBadge, STAGES } from "@/components/ui/StageBadge"
+import { StageBadge } from "@/components/ui/StageBadge"
 import { Button } from "@/components/ui/button"
 import { matchScoreAPorcentaje } from "@/lib/matchScore"
 import { fetchApplicationDetails, fetchApplicationHistory, fetchApplicationNotes, addApplicationNote } from "@/api/talent"
-
-const formatearFecha = (fecha) =>
-  new Date(fecha).toLocaleDateString("es-NI", { day: "numeric", month: "short", year: "numeric" })
 
 const formatearFechaHora = (fecha) =>
   new Date(fecha).toLocaleString("es-NI", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -99,7 +96,6 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
   const email    = detalle?.email  ?? candidato.email
   const etapa    = detalle?.etapa  ?? candidato.etapa
   const scorePct = matchScoreAPorcentaje(detalle?.score ?? candidato.score)
-  const fechaPorEtapa = Object.fromEntries(historial.map((h) => [h.etapa, h.fecha]))
 
   return (
     <div className="min-h-screen bg-applik-bg p-6">
@@ -263,49 +259,47 @@ export default function DetallesCandidatoPage({ candidato, onBack, onActualizarE
                 )}
               </Seccion>
 
-              {/* Timeline con el historial real de etapas */}
+              {/* Bitácora cronológica real de cambios de etapa (con fecha y hora) */}
               <Seccion titulo="Historial de Proceso">
-                <div className="relative">
-                  {STAGES.map((nombreEtapa, i) => {
-                    const fecha      = fechaPorEtapa[nombreEtapa]
-                    const esActual   = nombreEtapa === etapa
-                    const completada = Boolean(fecha) && !esActual
-                    const pendiente  = !fecha && !esActual
+                {historial.length === 0 ? (
+                  <SinDatos>Sin cambios de etapa registrados.</SinDatos>
+                ) : (
+                  <div className="relative">
+                    {[...historial]
+                      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+                      .map((h, i, arr) => {
+                        const esActual = i === arr.length - 1
+                        return (
+                          <div key={`${h.fecha}-${i}`} className="flex gap-3">
+                            <div className="flex flex-col items-center">
+                              <div className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                                esActual ? "border-violet-500 bg-violet-500" : "border-teal-500 bg-teal-500"
+                              }`}>
+                                {esActual
+                                  ? <div className="size-2 rounded-full bg-white" />
+                                  : <CheckCircle2 className="size-3.5 text-white" />}
+                              </div>
+                              {i < arr.length - 1 && (
+                                <div className="w-0.5 flex-1 my-1 min-h-[20px] bg-teal-200" />
+                              )}
+                            </div>
 
-                    return (
-                      <div key={nombreEtapa} className="flex gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
-                            esActual   ? "border-violet-500 bg-violet-500"
-                            : completada ? "border-teal-500 bg-teal-500"
-                            : "border-slate-200 bg-white"
-                          }`}>
-                            {esActual   && <div className="size-2 rounded-full bg-white" />}
-                            {completada && <CheckCircle2 className="size-3.5 text-white" />}
-                            {pendiente  && <Circle className="size-3 text-slate-300" />}
+                            <div className="pb-4 flex-1 min-w-0">
+                              <p className={`text-sm font-medium leading-tight ${esActual ? "text-violet-700" : "text-slate-700"}`}>
+                                {h.etapa}
+                                {esActual && <span className="ml-2 text-xs font-normal text-violet-400">actual</span>}
+                              </p>
+                              {h.fecha && (
+                                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                                  <Clock className="size-3" /> {formatearFechaHora(h.fecha)}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          {i < STAGES.length - 1 && (
-                            <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${completada ? "bg-teal-200" : "bg-slate-100"}`} />
-                          )}
-                        </div>
-
-                        <div className="pb-4 flex-1 min-w-0">
-                          <p className={`text-sm font-medium leading-tight ${
-                            esActual ? "text-violet-700" : completada ? "text-slate-700" : "text-slate-300"
-                          }`}>
-                            {nombreEtapa}
-                            {esActual && <span className="ml-2 text-xs font-normal text-violet-400">actual</span>}
-                          </p>
-                          {fecha && (
-                            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                              <Clock className="size-3" /> {formatearFecha(fecha)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                        )
+                      })}
+                  </div>
+                )}
               </Seccion>
 
               <Seccion titulo="CV">
