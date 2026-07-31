@@ -198,6 +198,8 @@ export default function CandidatosPage() {
     const matchReclutador = filtros.reclutador.length === 0 || filtros.reclutador.includes(c.reclutador)
     return matchBusqueda && matchVacantes && matchArea && matchReclutador
   })
+    // Rankeados por match score (mayor primero); los sin analizar van al final.
+    .sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
 
   const abrirDetalles   = (c) => { setCandidato(c); setVista("detalles") }
   const volverALista    = () => { setVista("list"); setCandidato(null) }
