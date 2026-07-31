@@ -64,6 +64,7 @@ class IngestCandidateUseCase {
                 // Actualizar perfil existente
                 await profile.update({
                     resume_url: localResumeUrl,
+                    full_name: extractedData.personal_info.name || null,
                     headline: extractedData.summary || 'Candidato CV Recibido',
                     location: extractedData.personal_info.location || '',
                     phone: extractedData.personal_info.phone || '',
@@ -81,6 +82,7 @@ class IngestCandidateUseCase {
                 profile = await CandidateProfile.create({
                     candidate_id: candidateId,
                     resume_url: localResumeUrl,
+                    full_name: extractedData.personal_info.name || null,
                     headline: extractedData.summary || 'Candidato CV Recibido',
                     location: extractedData.personal_info.location || '',
                     phone: extractedData.personal_info.phone || '',

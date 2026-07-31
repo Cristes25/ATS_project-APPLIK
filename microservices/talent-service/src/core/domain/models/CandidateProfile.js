@@ -13,6 +13,12 @@ const CandidateProfile = sequelize.define('CandidateProfile', {
         allowNull: true, // Permitir nulos para perfiles 'huérfanos' (Public Apply)
         unique: true
     },
+    full_name: {
+        // Nombre extraído del CV; se usa como identidad cuando el perfil no tiene
+        // una cuenta de candidato asociada (postulación anónima).
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     resume_url: {
         type: DataTypes.STRING,
         allowNull: false,

@@ -88,6 +88,25 @@ const buildServer = async () => {
     try {
         await sequelize.authenticate();
         app.log.info('La conexion a la base de datos PostgreSQL se ha establecido con exito.');
+
+        // Migraciones idempotentes de esquema. En producción el sync automático
+        // está deshabilitado, por lo que estos cambios se aplican explícitamente
+        // en cada arranque (son seguros de repetir).
+        try {
+            await sequelize.query('ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);');
+            await sequelize.query(`CREATE TABLE IF NOT EXISTS application_notes (
+                id SERIAL PRIMARY KEY,
+                application_id INTEGER NOT NULL,
+                author_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );`);
+            app.log.info('Migraciones de esquema aplicadas.');
+        } catch (migErr) {
+            app.log.error('Error aplicando migraciones de esquema: ' + migErr.message);
+        }
+
         // Sincronización - Seguro para Producción
         const isDev = process.env.NODE_ENV !== 'production';
         if (isDev) {

@@ -26,6 +26,8 @@ class CandidateController {
                 if (part.type === 'file') {
                     const fileName = `candidato_${Date.now()}_${part.filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
                     const savePath = path.join(__dirname, '..', '..', '..', 'uploads', 'cvs', fileName);
+                    // El volumen de /uploads puede arrancar vacío; se garantiza el dir.
+                    fs.mkdirSync(path.dirname(savePath), { recursive: true });
                     await pump(part.file, fs.createWriteStream(savePath));
                     s3Url = `/uploads/cvs/${fileName}`;
                 } else {
@@ -99,6 +101,8 @@ class CandidateController {
                 if (part.type === 'file') {
                     const fileName = `candidato_${Date.now()}_${part.filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
                     const savePath = path.join(__dirname, '..', '..', '..', 'uploads', 'cvs', fileName);
+                    // El volumen de /uploads puede arrancar vacío; se garantiza el dir.
+                    fs.mkdirSync(path.dirname(savePath), { recursive: true });
                     await pump(part.file, fs.createWriteStream(savePath));
                     s3Url = `/uploads/cvs/${fileName}`;
                 } else {
@@ -255,7 +259,7 @@ class CandidateController {
 
                 const candidateName = candidate 
                     ? `${candidate.first_name} ${candidate.last_name}` 
-                    : 'Candidato Ingestado';
+                    : (profile.full_name || 'Candidato Ingestado');
 
                 const email = candidate 
                     ? candidate.email 
@@ -459,7 +463,7 @@ class CandidateController {
             const candidate = profile.candidate || {};
             const candidateName = candidate.first_name && candidate.last_name
                 ? `${candidate.first_name} ${candidate.last_name}`
-                : 'Candidato Ingestado';
+                : (profile.full_name || 'Candidato Ingestado');
 
             const scorePercent = application.match_score 
                 ? parseInt(application.match_score, 10)
