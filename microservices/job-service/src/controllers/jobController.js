@@ -128,13 +128,34 @@ exports.deleteJob = async (request, reply) => {
   const { id } = request.params;
   const tenant_id = request.user.company_id;
 
+  const transaction = await sequelize.transaction();
   try {
-    const job = await Job.findOne({ where: { id, tenant_id } });
-    if (!job) return reply.code(404).send({ error: 'Vacante no encontrada.' });
+    const job = await Job.findOne({ where: { id, tenant_id }, transaction });
+    if (!job) {
+      await transaction.rollback();
+      return reply.code(404).send({ error: 'Vacante no encontrada.' });
+    }
 
-    await job.destroy();
+    // La BD (talent_db) es compartida: postulaciones, su historial, notas y los
+    // bookmarks referencian esta vacante con FK y no hay ON DELETE CASCADE, así
+    // que se limpian en orden antes de borrar el Job.
+    const repl = { replacements: { jobId: id }, transaction };
+    await sequelize.query('DELETE FROM application_stage_history WHERE application_id IN (SELECT id FROM applications WHERE job_id = :jobId)', repl);
+
+    // application_notes puede no existir en despliegues previos al fix de notas.
+    const [notesReg] = await sequelize.query("SELECT to_regclass('public.application_notes') AS t", { transaction });
+    if (notesReg[0] && notesReg[0].t) {
+      await sequelize.query('DELETE FROM application_notes WHERE application_id IN (SELECT id FROM applications WHERE job_id = :jobId)', repl);
+    }
+
+    await sequelize.query('DELETE FROM applications WHERE job_id = :jobId', repl);
+    await sequelize.query('DELETE FROM bookmarks WHERE job_id = :jobId', repl);
+
+    await job.destroy({ transaction });
+    await transaction.commit();
     return reply.send({ message: 'Vacante eliminada.' });
   } catch (error) {
+    await transaction.rollback();
     request.log.error(error);
     return reply.code(500).send({ error: `Database error: ${error.message}` });
   }
