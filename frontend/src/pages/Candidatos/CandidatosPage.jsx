@@ -7,7 +7,7 @@ import { SearchInput } from "@/components/ui/Input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/Card"
 import { MatchScoreBar } from "@/components/ui/MatchScoreBar"
-import { updateApplicationStage, fetchApplications } from "@/api/talent"
+import { updateApplicationStage, fetchApplications, deleteApplication } from "@/api/talent"
 import { getTenantId } from "@/lib/token"
 import ActualizarEtapaModal from "./ActualizarEtapaModal"
 import DescartarModal from "./DescartarModal"
@@ -226,9 +226,18 @@ export default function CandidatosPage() {
     cerrarModal()
   }
 
-  const confirmarDescartar = () => {
+  const confirmarDescartar = async () => {
+    if (candidatoActivo.application_id) {
+      try {
+        await deleteApplication(candidatoActivo.application_id)
+      } catch (err) {
+        alert(err.message ?? "No se pudo eliminar el candidato. Intenta de nuevo.")
+        return
+      }
+    }
     setCandidatos((prev) => prev.filter((c) => c.id !== candidatoActivo.id))
     cerrarModal()
+    volverALista()   // si estaba en el detalle, vuelve a la lista
   }
 
   if (vista === "detalles") {
