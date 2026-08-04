@@ -1,9 +1,11 @@
 export async function apiFetch(url, { auth = true, ...options } = {}) {
-  const headers = { "Content-Type": "application/json", ...options.headers }
-  
-  // Permitir que fetch maneje automáticamente el boundary si es FormData
-  if (options.body instanceof FormData) {
-    delete headers["Content-Type"];
+  const headers = { ...options.headers }
+
+  // Content-Type: application/json solo cuando hay body JSON. Un request sin body
+  // (ej. DELETE) no debe mandarlo, porque Fastify rechaza un body vacío con ese
+  // header (FST_ERR_CTP_EMPTY_JSON_BODY → 400). FormData maneja su propio boundary.
+  if (options.body && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json"
   }
 
   if (auth) {
