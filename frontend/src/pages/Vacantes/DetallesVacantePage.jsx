@@ -2,6 +2,7 @@ import { useState } from "react"
 import { ArrowLeft, Tag, Pencil, Globe, Link, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { updateJob } from "@/api/jobs"
+import { formatearSalario } from "@/lib/salario"
 
 function diasDesde(fecha) {
   const diff = Date.now() - new Date(fecha).getTime()
@@ -124,7 +125,7 @@ export default function DetallesVacantePage({ vacante, onBack, onEdit, onStatusC
           <section className="space-y-2">
             <h2 className="font-semibold text-slate-800">Rango Salarial</h2>
             <p className="text-sm font-medium text-slate-700">
-              {Number(vacante.salary_min).toLocaleString("es")} – {Number(vacante.salary_max).toLocaleString("es")} {vacante.currency ?? "NIO"} mensuales
+              {formatearSalario(vacante)}{!vacante.salary_negotiable && " mensuales"}
             </p>
           </section>
 

@@ -45,6 +45,14 @@ const start = async () => {
     await sequelize.authenticate();
     console.log('Conexión a la DB establecida correctamente.');
 
+    // Migración idempotente: en prod el alter está desactivado, así que la columna
+    // nueva se aplica explícitamente en cada arranque (segura de repetir).
+    try {
+      await sequelize.query('ALTER TABLE "Jobs" ADD COLUMN IF NOT EXISTS salary_negotiable BOOLEAN NOT NULL DEFAULT false;');
+    } catch (migErr) {
+      console.error('Error aplicando migración salary_negotiable:', migErr.message);
+    }
+
     const isDev = process.env.NODE_ENV !== 'production';
     await sequelize.sync({ alter: isDev });
     console.log(isDev ? 'Dev/E2E Mode: Base de datos actualizada con alter.' : 'Prod Mode: Alter desactivado.');

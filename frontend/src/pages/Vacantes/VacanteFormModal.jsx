@@ -56,6 +56,7 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
   const [requisitos,    setRequisitos]    = useState(vacante?.requirements       ?? "")
   const [salarioMin,    setSalarioMin]    = useState(vacante?.salary_min         ?? "")
   const [salarioMax,    setSalarioMax]    = useState(vacante?.salary_max         ?? "")
+  const [salarioAConvenir, setSalarioAConvenir] = useState(vacante?.salary_negotiable ?? false)
 
   const [departments,  setDepartments]  = useState([])
   const [urlEmpresa,   setUrlEmpresa]   = useState("")
@@ -116,8 +117,9 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
       location:         ubicacion || undefined,
       contract_type:    contrato || undefined,
       experience_level: experiencia || undefined,
-      salary_min:       parseFloat(salarioMin) || 0,
-      salary_max:       parseFloat(salarioMax) || 0,
+      salary_min:       salarioAConvenir ? 0 : (parseFloat(salarioMin) || 0),
+      salary_max:       salarioAConvenir ? 0 : (parseFloat(salarioMax) || 0),
+      salary_negotiable: salarioAConvenir,
       department_id:    dept.id,
     }
 
@@ -284,6 +286,7 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
             {errorIA && <p className="text-xs text-red-500">{errorIA}</p>}
 
             <Textarea
+              required
               placeholder="La descripción generada por la IA aparecerá acá. Podés editarla libremente."
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
@@ -293,26 +296,43 @@ export default function VacanteFormModal({ vacante = null, onClose, onSave }) {
 
           {/* Rango Salarial */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">
-              Rango Salarial
-              <span className="ml-1 text-xs text-slate-400">(NIO)</span>
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                placeholder="Mínimo"
-                type="number"
-                min="0"
-                value={salarioMin}
-                onChange={(e) => setSalarioMin(e.target.value)}
-              />
-              <Input
-                placeholder="Máximo"
-                type="number"
-                min="0"
-                value={salarioMax}
-                onChange={(e) => setSalarioMax(e.target.value)}
-              />
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-slate-700">
+                Rango Salarial
+                <span className="ml-1 text-xs text-slate-400">(NIO)</span>
+              </label>
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={salarioAConvenir}
+                  onChange={(e) => setSalarioAConvenir(e.target.checked)}
+                  className="accent-violet-600 size-3.5"
+                />
+                A convenir
+              </label>
             </div>
+            {salarioAConvenir ? (
+              <p className="rounded-lg border border-dashed border-slate-200 px-3 py-2 text-sm text-slate-400">
+                El salario se mostrará como “A convenir”.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  placeholder="Mínimo"
+                  type="number"
+                  min="0"
+                  value={salarioMin}
+                  onChange={(e) => setSalarioMin(e.target.value)}
+                />
+                <Input
+                  placeholder="Máximo"
+                  type="number"
+                  min="0"
+                  value={salarioMax}
+                  onChange={(e) => setSalarioMax(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           {error && <p className="text-xs text-red-500 text-center">{error}</p>}

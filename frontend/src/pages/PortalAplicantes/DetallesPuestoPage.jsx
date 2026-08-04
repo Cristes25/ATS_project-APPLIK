@@ -7,6 +7,7 @@ import {
 import CvDropzone from "@/components/ui/CvDropzone"
 import { MatchScoreBar } from "@/components/ui/MatchScoreBar"
 import { fetchPublicJobById } from "@/api/jobs"
+import { formatearSalario } from "@/lib/salario"
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -104,7 +105,7 @@ export default function DetallesPuestoPage() {
             categoria:        data.Department?.name ?? "",
             publicado:        `hace ${Math.floor((Date.now() - new Date(data.createdAt)) / 86400000)} días`,
             fechaLimite:      data.closes_at ? new Date(data.closes_at).toLocaleDateString("es") : "Abierta",
-            salario:          `${Number(data.salary_min).toLocaleString("es")} – ${Number(data.salary_max).toLocaleString("es")} ${data.currency ?? "NIO"}`,
+            salario:          formatearSalario(data),
             descripcion:      data.description,
             experiencia_desc: [],
             requisitos:       data.requirements ? data.requirements.split("\n").filter(Boolean) : [],

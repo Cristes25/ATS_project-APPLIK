@@ -4,6 +4,7 @@ import { Search, Clock, ChevronLeft, ChevronRight, Building2, Sparkles } from "l
 import { fetchPublicJobs } from "@/api/jobs"
 import { getTenantId } from "@/lib/token"
 import { matchScoreAPorcentaje } from "@/lib/matchScore"
+import { formatearSalario } from "@/lib/salario"
 import { Avatar } from "@/components/ui/Avatar"
 
 import dominusCan    from "@/assets/partners/dominus-can.jpg.jpeg"
@@ -132,9 +133,7 @@ export default function InicioPage() {
           <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
             {jobs.slice(0, 10).map((job) => {
               const dept   = job.Department?.name ?? "—"
-              const salary = job.salary_min && job.salary_max
-                ? `C$ ${Number(job.salary_min).toLocaleString()} – C$ ${Number(job.salary_max).toLocaleString()}`
-                : "Salario no especificado"
+              const salary = formatearSalario(job)
               return (
                 <div
                   key={job.id}
@@ -184,9 +183,7 @@ export default function InicioPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {jobs.slice(0, 4).map((job) => {
               const dept   = job.Department?.name ?? "—"
-              const salary = job.salary_min && job.salary_max
-                ? `C$ ${Number(job.salary_min).toLocaleString()} – C$ ${Number(job.salary_max).toLocaleString()}`
-                : "Salario no especificado"
+              const salary = formatearSalario(job)
               return (
                 <div
                   key={job.id}
