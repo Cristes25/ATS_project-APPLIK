@@ -54,6 +54,12 @@ const Job = sequelize.define('Job', {
     allowNull: false,
     defaultValue: 'NIO',
   },
+  // Cuando es true, la vacante muestra "A convenir" en vez del rango numérico.
+  salary_negotiable: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   status: {
     type: DataTypes.ENUM(...JOB_STATUSES),
     allowNull: false,
