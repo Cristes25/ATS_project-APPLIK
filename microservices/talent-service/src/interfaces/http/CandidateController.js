@@ -297,6 +297,69 @@ class CandidateController {
     }
 
     /**
+     * DELETE /api/v1/talents/applications/:id
+     * El reclutador elimina una postulación de su pipeline (aislamiento por tenant).
+     */
+    async deleteApplication(request, reply) {
+        const applicationId = parseInt(request.params.id, 10);
+        if (isNaN(applicationId)) {
+            return reply.code(400).send({ error: 'ID de postulación inválido.' });
+        }
+
+        const authHeader = request.headers.authorization;
+        if (!authHeader) {
+            return reply.code(401).send({ error: 'Token de autorización requerido.' });
+        }
+
+        let tenantId;
+        try {
+            const jwt = require('jsonwebtoken');
+            const decoded = jwt.verify(authHeader.replace('Bearer ', ''), process.env.JWT_SECRET);
+            if (decoded.role !== 'admin' && decoded.role !== 'reclutador') {
+                return reply.code(403).send({ error: 'Acceso denegado: se requiere rol de reclutador o admin.' });
+            }
+            tenantId = decoded.company_id;
+        } catch (authError) {
+            request.log.error('Fallo de autenticación en deleteApplication:', authError.message);
+            return reply.code(401).send({ error: 'Token de autorización no válido o expirado.' });
+        }
+
+        const transaction = await sequelize.transaction();
+        try {
+            const application = await Application.findByPk(applicationId, {
+                include: [{ model: Job, as: 'job' }],
+                transaction
+            });
+
+            if (!application) {
+                await transaction.rollback();
+                return reply.code(404).send({ error: 'Postulación no encontrada.' });
+            }
+
+            // Solo el dueño de la vacante puede eliminar la postulación.
+            if (application.job && application.job.tenant_id !== tenantId) {
+                await transaction.rollback();
+                return reply.code(403).send({ error: 'Acceso denegado: esta postulación pertenece a otra organización.' });
+            }
+
+            // Limpiar dependientes antes de la postulación (no hay ON DELETE CASCADE en la BD).
+            await ApplicationStageHistory.destroy({ where: { application_id: applicationId }, transaction });
+            const [notesReg] = await sequelize.query("SELECT to_regclass('public.application_notes') AS t", { transaction });
+            if (notesReg[0] && notesReg[0].t) {
+                await sequelize.query('DELETE FROM application_notes WHERE application_id = :id', { replacements: { id: applicationId }, transaction });
+            }
+            await application.destroy({ transaction });
+
+            await transaction.commit();
+            return reply.send({ message: 'Candidato eliminado del proceso.' });
+        } catch (error) {
+            await transaction.rollback();
+            request.log.error('Error en deleteApplication:', error.message);
+            return reply.code(500).send({ error: 'No se pudo eliminar el candidato.' });
+        }
+    }
+
+    /**
      * DELETE /api/v1/talents/candidates/:candidateId
      * Elimina todos los datos de perfil y postulaciones de un candidato (Derecho al olvido — Ley 787)
      */

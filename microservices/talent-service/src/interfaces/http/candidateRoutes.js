@@ -156,6 +156,20 @@ async function routes(fastify, options) {
         }
     }, applicationController.getStageAnalytics);
 
+    // DELETE /api/v1/talents/applications/:id — el reclutador elimina una postulación
+    fastify.delete('/applications/:id', {
+        schema: {
+            description: 'Eliminar una postulación del pipeline del reclutador.',
+            tags: ['Talent'],
+            security: [{ bearerAuth: [] }],
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: { id: { type: 'integer' } }
+            }
+        }
+    }, candidateController.deleteApplication.bind(candidateController));
+
     // DELETE /api/v1/talents/candidates/:candidateId (Cumplimiento Ley 787)
     fastify.delete('/candidates/:candidateId', {
         schema: {

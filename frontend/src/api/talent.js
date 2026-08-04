@@ -21,6 +21,10 @@ export const updateApplicationStage = (applicationId, stage) =>
     body: JSON.stringify({ stage }),
   })
 
+// El reclutador elimina una postulación de su pipeline (borrado real).
+export const deleteApplication = (applicationId) =>
+  apiFetch(`${TALENT}/api/v1/talents/applications/${applicationId}`, { method: "DELETE" })
+
 // El endpoint es público, pero si el candidato tiene sesión se manda el token
 // para que el backend ligue la postulación a su cuenta. apiFetch omite la
 // cabecera cuando no hay token, así que el flujo anónimo sigue funcionando.
